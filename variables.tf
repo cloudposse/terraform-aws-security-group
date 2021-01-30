@@ -1,17 +1,6 @@
-variable "description" {
-  type        = string
-  default     = "Managed by Terraform"
-  description = "The Security Group description."
-}
-
 variable "vpc_id" {
   type        = string
   description = "The VPC ID where Security Group will be created."
-
-  validation {
-    condition     = substr(var.vpc_id, 0, 4) == "vpc-" && length(var.vpc_id) > 4
-    error_message = "The ami_id value must start with `ami-`."
-  }
 }
 
 variable "security_group_enabled" {
@@ -26,31 +15,27 @@ variable "use_name_prefix" {
   description = "Whether to create a unique name beginning with the normalized prefix."
 }
 
+variable "description" {
+  type        = string
+  default     = "Managed by Terraform"
+  description = "The Security Group description."
+}
+
 variable "sg_id" {
   type        = string
-  default     = null
-  description = "The external Security Group ID to which Security Group rules will be assigned."
-  validation {
-    condition     = var.sg_id == null ? true : substr(var.sg_id, 0, 3) == "sg-" && length(var.sg_id) > 3
-    error_message = "The sg_id value must start with `sg-`."
-  }
+  default     = ""
+  description = <<-EOT
+    The external Security Group ID to which Security Group rules will be assigned.
+    Required to set `security_group_enabled` to `false`.
+  EOT
 }
 
 variable "sg_rules" {
-  type = list(object({
-    type                     = string
-    cidr_blocks              = list(string)
-    ipv6_cidr_blocks         = list(string)
-    prefix_list_ids          = list(string)
-    from_port                = number
-    to_port                  = number
-    protocol                 = string
-    security_group_id        = string
-    source_security_group_id = string
-    self                     = bool
-    description              = string
-  }))
-
-  default     = []
-  description = "Change me"
+  type        = list(any)
+  default     = null
+  description = <<-EOT
+    A list of maps of Security Group rules. 
+    The values of map is fully complated with `aws_security_group_rule` resource. 
+    To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule .
+  EOT
 }

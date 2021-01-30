@@ -7,6 +7,13 @@
 # Name of this project
 name: terraform-aws-security-group
 
+# Tags of this project
+tags:
+  - aws
+  - security-group
+  - terraform
+  - terraform-modules
+
 # Logo for this project
 #logo: docs/logo.png
 
@@ -30,9 +37,6 @@ badges:
   - name: "Slack Community"
     image: "https://slack.cloudposse.com/badge.svg"
     url: "https://slack.cloudposse.com"
-  - name: "Discourse Forum"
-    image: "https://img.shields.io/discourse/https/ask.sweetops.com/posts.svg"
-    url: "https://ask.sweetops.com/"
 
 # List any related terraform modules that this module may be used with or that this module depends on.
 related:
@@ -42,23 +46,13 @@ related:
 
 # List any resources helpful for someone to get started. For example, link to the hashicorp documentation or AWS documentation.
 references:
-  - name: "Terraform Standard Module Structure"
-    description: "HashiCorp's standard module structure is a file and directory layout we recommend for reusable modules distributed in separate repositories."
-    url: "https://www.terraform.io/docs/modules/index.html#standard-module-structure"
-  - name: "Terraform Module Requirements"
-    description: "HashiCorp's guidance on all the requirements for publishing a module. Meeting the requirements for publishing a module is extremely easy."
-    url: "https://www.terraform.io/docs/registry/modules/publish.html#requirements"
-  - name: "Terraform `random_integer` Resource"
-    description: "The resource random_integer generates random values from a given range, described by the min and max attributes of a given resource."
-    url: "https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer"
-  - name: "Terraform Version Pinning"
-    description: "The required_version setting can be used to constrain which versions of the Terraform CLI can be used with your configuration"
-    url: "https://www.terraform.io/docs/configuration/terraform.html#specifying-a-required-terraform-version"
+  - name: terraform-provider-aws
+    description: Terraform AWS provider
+    url: https://registry.terraform.io/providers/hashicorp/aws/latest
 
 # Short description of this project
 description: |-
-  This is `terraform-aws-security-group` project provides all the scaffolding for a typical well-built Cloud Posse module. It's a template repository you can
-  use when creating new repositories.
+  Terraform module to create AWS Security Group and rules.
 
 # Introduction to the project
 #introduction: |-
@@ -66,12 +60,55 @@ description: |-
 
 # How to use this module. Should be an easy example to copy and paste.
 usage: |-
-  Here's how to invoke this example module in your projects
 
   ```hcl
-  module "example" {
-    source = "https://github.com/cloudposse/terraform-aws-security-group.git?ref=master"
-    example = "Hello world!"
+  module "label" {
+    source = "cloudposse/label/null"
+    # Cloud Posse recommends pinning every module to a specific version
+    # version = "x.x.x"
+    namespace  = "eg"
+    stage      = "prod"
+    name       = "bastion"
+    attributes = ["public"]
+    delimiter  = "-"
+
+    tags = {
+      "BusinessUnit" = "XYZ",
+      "Snapshot"     = "true"
+    }
+  }
+
+  module "vpc" {
+    source = "cloudposse/vpc/aws"
+    # Cloud Posse recommends pinning every module to a specific version
+    # version = "x.x.x"
+    cidr_block = "10.0.0.0/16"
+
+    context = module.label.context
+  }
+
+  module "vpc" {
+    source = "cloudposse/security-group/aws"
+    # Cloud Posse recommends pinning every module to a specific version
+    # version = "x.x.x"
+    sg_rules = [
+      {
+        type        = "ingress"
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+      },
+      {
+        type        = "egress"
+        from_port   = 0
+        to_port     = 65535
+        protocol    = "all"
+        cidr_blocks = ["0.0.0.0/0"]
+      }
+    ]
+
+    context = module.label.context
   }
   ```
 
@@ -93,3 +130,5 @@ include:
 contributors:
   - name: "Erik Osterman"
     github: "osterman"
+  - name: "Vladimir"
+    github: "SweetOps"
