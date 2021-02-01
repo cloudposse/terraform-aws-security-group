@@ -1,13 +1,13 @@
 locals {
   security_group_enabled = module.this.enabled && var.security_group_enabled
   is_external            = module.this.enabled && var.security_group_enabled == false
-  name                   = var.use_name_prefix ? null : module.this.id
-  name_prefix            = var.use_name_prefix ? format("%s%s", module.this.id, module.this.delimiter) : null
-  sg_id                  = local.is_external ? join("", data.aws_security_group.external.*.id) : join("", aws_security_group.default.*.id)
-  sg_arn                 = local.is_external ? join("", data.aws_security_group.external.*.arn) : join("", aws_security_group.default.*.arn)
-  sg_name                = local.is_external ? join("", data.aws_security_group.external.*.name) : join("", aws_security_group.default.*.name)
-  sg_rules = module.this.enabled && var.sg_rules != null ? {
-    for rule in flatten(distinct(var.sg_rules)) :
+  use_name               = var.use_name_prefix ? null : module.this.id
+  use_name_prefix        = var.use_name_prefix ? format("%s%s", module.this.id, module.this.delimiter) : null
+  id                     = local.is_external ? join("", data.aws_security_group.external.*.id) : join("", aws_security_group.default.*.id)
+  arn                    = local.is_external ? join("", data.aws_security_group.external.*.arn) : join("", aws_security_group.default.*.arn)
+  name                   = local.is_external ? join("", data.aws_security_group.external.*.name) : join("", aws_security_group.default.*.name)
+  rules = module.this.enabled && var.rules != null ? {
+    for rule in flatten(distinct(var.rules)) :
     format("%s-%s-%s-%s-%s-%s-%s-%s-%s-%s",
       rule.type,
       rule.protocol,
@@ -21,20 +21,19 @@ locals {
       lookup(rule, "description", null) == null ? "no_desc" : "desc"
     ) => rule
   } : {}
-
 }
 
 data "aws_security_group" "external" {
   count  = local.is_external ? 1 : 0
-  id     = var.sg_id
+  id     = var.id
   vpc_id = var.vpc_id
 }
 
 resource "aws_security_group" "default" {
   count = local.security_group_enabled && local.is_external == false ? 1 : 0
 
-  name        = local.name
-  name_prefix = local.name_prefix
+  name        = local.use_name
+  name_prefix = local.use_name_prefix
   description = var.description
   vpc_id      = var.vpc_id
   tags        = module.this.tags
@@ -45,9 +44,9 @@ resource "aws_security_group" "default" {
 }
 
 resource "aws_security_group_rule" "default" {
-  for_each = local.sg_rules
+  for_each = local.rules
 
-  security_group_id        = local.sg_id
+  security_group_id        = local.id
   type                     = each.value.type
   from_port                = each.value.from_port
   to_port                  = each.value.to_port

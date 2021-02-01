@@ -87,11 +87,11 @@ usage: |-
     context = module.label.context
   }
 
-  module "vpc" {
+  module "sg" {
     source = "cloudposse/security-group/aws"
     # Cloud Posse recommends pinning every module to a specific version
     # version = "x.x.x"
-    sg_rules = [
+    rules = [
       {
         type        = "ingress"
         from_port   = 22

@@ -1,14 +1,14 @@
-output "sg_id" {
+output "id" {
   description = "The Security Group ID"
-  value       = try(local.sg_id, null)
+  value       = try(local.id, null)
 }
 
-output "sg_arn" {
+output "arn" {
   description = "The Security Group ARN"
-  value       = try(local.sg_arn, null)
+  value       = try(local.arn, null)
 }
 
-output "sg_name" {
+output "name" {
   description = "The Security Group Name"
-  value       = try(local.sg_name, null)
+  value       = try(local.name, null)
 }

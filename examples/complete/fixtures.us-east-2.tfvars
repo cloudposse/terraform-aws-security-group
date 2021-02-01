@@ -8,7 +8,7 @@ stage = "test"
 
 name = "sg"
 
-sg_rules = [
+rules = [
   {
     type        = "ingress"
     from_port   = 22

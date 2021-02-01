@@ -16,8 +16,8 @@ module "vpc" {
 module "new_security_group" {
   source = "../.."
 
-  vpc_id   = module.vpc.vpc_id
-  sg_rules = var.sg_rules
+  vpc_id = module.vpc.vpc_id
+  rules  = var.rules
 
   context = module.this.context
 }
@@ -34,8 +34,8 @@ module "external_security_group" {
   source = "../.."
 
   vpc_id                 = module.vpc.vpc_id
-  sg_id                  = aws_security_group.external.id
-  sg_rules               = var.sg_rules
+  id                     = aws_security_group.external.id
+  rules                  = var.rules
   security_group_enabled = false
 
   context = module.this.context
@@ -46,9 +46,9 @@ module "external_security_group" {
 module "disabled_security_group" {
   source = "../.."
 
-  vpc_id   = module.vpc.vpc_id
-  sg_id    = aws_security_group.external.id
-  sg_rules = var.sg_rules
-  context  = module.this.context
-  enabled  = false
+  vpc_id  = module.vpc.vpc_id
+  id      = aws_security_group.external.id
+  rules   = var.rules
+  context = module.this.context
+  enabled = false
 }

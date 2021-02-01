@@ -2,6 +2,6 @@ variable "region" {
   type = string
 }
 
-variable "sg_rules" {
+variable "rules" {
   type = list(any)
 }

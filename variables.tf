@@ -21,7 +21,7 @@ variable "description" {
   description = "The Security Group description."
 }
 
-variable "sg_id" {
+variable "id" {
   type        = string
   default     = ""
   description = <<-EOT
@@ -30,7 +30,7 @@ variable "sg_id" {
   EOT
 }
 
-variable "sg_rules" {
+variable "rules" {
   type        = list(any)
   default     = null
   description = <<-EOT
