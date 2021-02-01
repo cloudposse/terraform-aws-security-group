@@ -1,14 +1,14 @@
 output "id" {
-  description = "ID of the created example"
-  value       = module.this.enabled ? module.this.id : null
+  description = "The Security Group ID"
+  value       = try(local.id, null)
 }
 
-output "example" {
-  description = "Example output"
-  value       = module.this.enabled ? local.example : null
+output "arn" {
+  description = "The Security Group ARN"
+  value       = try(local.arn, null)
 }
 
-output "random" {
-  description = "Stable random number for this example"
-  value       = module.this.enabled ? join("", random_integer.example[*].result) : null
+output "name" {
+  description = "The Security Group Name"
+  value       = try(local.name, null)
 }
