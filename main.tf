@@ -18,7 +18,7 @@ locals {
       lookup(rule, "security_group_id", null) == null ? "no_ssg" : "ssg",
       lookup(rule, "prefix_list_ids", null) == null ? "no_pli" : "pli",
       lookup(rule, "self", null) == null ? "no_self" : "self",
-      lookup(rule, "description", null) == null ? "no_desc" : "desc"
+      lookup(rule, "description", null) == null ? "no_desc" : md5(rule.description)
     ) => rule
   } : {}
 }
