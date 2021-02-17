@@ -6,21 +6,6 @@ locals {
   id                     = local.is_external ? join("", data.aws_security_group.external.*.id) : join("", aws_security_group.default.*.id)
   arn                    = local.is_external ? join("", data.aws_security_group.external.*.arn) : join("", aws_security_group.default.*.arn)
   name                   = local.is_external ? join("", data.aws_security_group.external.*.name) : join("", aws_security_group.default.*.name)
-  rules = module.this.enabled && var.rules != null ? {
-    for rule in flatten(distinct(var.rules)) :
-    format("%s-%s-%s-%s-%s-%s-%s-%s-%s-%s",
-      rule.type,
-      rule.protocol,
-      rule.from_port,
-      rule.to_port,
-      lookup(rule, "cidr_blocks", null) == null ? "no_ipv4" : "ipv4",
-      lookup(rule, "ipv6_cidr_blocks", null) == null ? "no_ipv6" : "ipv6",
-      lookup(rule, "security_group_id", null) == null ? "no_ssg" : "ssg",
-      lookup(rule, "prefix_list_ids", null) == null ? "no_pli" : "pli",
-      lookup(rule, "self", null) == null ? "no_self" : "self",
-      lookup(rule, "description", null) == null ? "no_desc" : md5(rule.description)
-    ) => rule
-  } : {}
 }
 
 data "aws_security_group" "external" {
@@ -44,17 +29,17 @@ resource "aws_security_group" "default" {
 }
 
 resource "aws_security_group_rule" "default" {
-  for_each = local.rules
+  count = module.this.enabled ? length(flatten(var.rules)) : 0
 
   security_group_id        = local.id
-  type                     = each.value.type
-  from_port                = each.value.from_port
-  to_port                  = each.value.to_port
-  protocol                 = each.value.protocol
-  cidr_blocks              = lookup(each.value, "cidr_blocks", null)
-  ipv6_cidr_blocks         = lookup(each.value, "ipv6_cidr_blocks", null)
-  prefix_list_ids          = lookup(each.value, "prefix_list_ids", null)
-  source_security_group_id = lookup(each.value, "source_security_group_id", null)
-  self                     = lookup(each.value, "self", null) == null ? false : each.value.self
-  description              = lookup(each.value, "description", null) == null ? "Managed by Terraform" : each.value.description
+  type                     = var.rules[count.index].type
+  from_port                = var.rules[count.index].from_port
+  to_port                  = var.rules[count.index].to_port
+  protocol                 = var.rules[count.index].protocol
+  cidr_blocks              = var.rules[count.index].cidr_blocks != null && length(var.rules[count.index].cidr_blocks) > 0 ? var.rules[count.index].cidr_blocks : null
+  ipv6_cidr_blocks         = var.rules[count.index].ipv6_cidr_blocks != null && length(var.rules[count.index].ipv6_cidr_blocks) > 0 ? var.rules[count.index].ipv6_cidr_blocks : null
+  prefix_list_ids          = var.rules[count.index].prefix_list_ids != null && length(var.rules[count.index].prefix_list_ids) > 0 ? var.rules[count.index].prefix_list_ids : null
+  source_security_group_id = try(var.rules[count.index].source_security_group_id, null)
+  self                     = try(var.rules[count.index].self, null)
+  description              = try(var.rules[count.index].description, "Managed by Terraform")
 }

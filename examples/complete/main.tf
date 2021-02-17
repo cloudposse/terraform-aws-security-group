@@ -17,7 +17,24 @@ module "new_security_group" {
   source = "../.."
 
   vpc_id = module.vpc.vpc_id
-  rules  = var.rules
+  rules = [
+    {
+      type                     = "ingress"
+      from_port                = 22
+      to_port                  = 22
+      protocol                 = "tcp"
+      source_security_group_id = aws_security_group.dynamic.id
+      cidr_blocks              = []
+    },
+    {
+      type                     = "egress"
+      from_port                = 0
+      to_port                  = 65535
+      protocol                 = "all"
+      cidr_blocks              = ["0.0.0.0/0"]
+      source_security_group_id = null
+    }
+  ]
 
   context = module.this.context
 }
@@ -26,6 +43,12 @@ module "new_security_group" {
 
 resource "aws_security_group" "external" {
   name_prefix = format("%s-%s-", module.this.id, "external")
+  vpc_id      = module.vpc.vpc_id
+  tags        = module.this.tags
+}
+
+resource "aws_security_group" "dynamic" {
+  name_prefix = format("%s-%s-", module.this.id, "dynamic")
   vpc_id      = module.vpc.vpc_id
   tags        = module.this.tags
 }
