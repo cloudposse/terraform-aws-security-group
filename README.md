@@ -188,6 +188,13 @@ Available targets:
 |------|--------|---------|
 | this | cloudposse/label/null | 0.24.1 |
 
+## Resources
+
+| Name |
+|------|
+| [aws_security_group](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/security_group) |
+| [aws_security_group](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) |
+| [aws_security_group_rule](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) |
 
 ## Inputs
 
