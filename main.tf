@@ -55,6 +55,6 @@ resource "aws_security_group_rule" "default" {
   ipv6_cidr_blocks         = lookup(each.value, "ipv6_cidr_blocks", null)
   prefix_list_ids          = lookup(each.value, "prefix_list_ids", null)
   source_security_group_id = lookup(each.value, "source_security_group_id", null)
-  self                     = lookup(each.value, "self", null) == null ? false : each.value.self
+  self                     = lookup(each.value, "self", null)
   description              = lookup(each.value, "description", null) == null ? "Managed by Terraform" : each.value.description
 }
