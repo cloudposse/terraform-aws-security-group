@@ -94,6 +94,24 @@ The table below correctly indicates which inputs are required.
 
 
 
+Note: Terraform requires that all the elements of the `rules` list be exactly
+the same type. This means you must supply all the same keys and, for each key,
+all the values for that key must be the same type. Any optional key, such as
+`ipv6_cidr_blocks`, can be omitted from all the rules without problem. However,
+if some rules have a key and other rules would omit the key if that were allowed
+(e.g one rule has `cidr_blocks` and another rule has `self = true`, and neither
+rule can include both `cidr_blocks` and `self`), instead of omitting the key,
+include the key with value of `null`, unless the value is a list type, in which case
+set the value to `[]` (an empty list).
+
+Although `description` is optional, if you do not include a description,
+the rule will be deleted and recreated if the index of the rule in the `rules`
+list changes, which usually happens as a result of adding or removing a rule. Rules
+that include a description will only be modified if the rule itself changes.
+Also, if 2 rules specify the same `type`, `protocol`, `from_port`, and `to_port`,
+they must not also have the same `description` (although if one or both rules
+have no description supplied, that will work).
+
 ```hcl
 module "label" {
   source = "cloudposse/label/null"
@@ -124,6 +142,7 @@ module "sg" {
   source = "cloudposse/security-group/aws"
   # Cloud Posse recommends pinning every module to a specific version
   # version = "x.x.x"
+
   rules = [
     {
       type        = "ingress"
@@ -131,13 +150,27 @@ module "sg" {
       to_port     = 22
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
+      self        = null
+      description = "Allow SSH from anywhere"
     },
+    {
+      type        = "ingress"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = []
+      self        = true
+      description = "Allow HTTP from inside the security group"
+    },
+
     {
       type        = "egress"
       from_port   = 0
       to_port     = 65535
       protocol    = "all"
       cidr_blocks = ["0.0.0.0/0"]
+      self        = null
+      description = "Allow egress to anywhere"
     }
   ]
 
@@ -151,7 +184,7 @@ module "sg" {
 ## Examples
 
 Here is an example of using this module:
-- [`examples/complete`](https://github.com/cloudposse/terraform-aws-security-group/) - complete example of using this module
+- [`examples/complete`](https://github.com/cloudposse/terraform-aws-security-group/examples/complete) - complete example of using this module
 
 
 
@@ -172,7 +205,7 @@ Available targets:
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.14.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.13.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 2.0 |
 
 ## Providers
@@ -239,13 +272,12 @@ Like this project? Please give it a ★ on [our GitHub](https://github.com/cloud
 Are you using this project or any of our other projects? Consider [leaving a testimonial][testimonial]. =)
 
 
+
 ## Related Projects
 
 Check out these related projects.
 
 - [terraform-null-label](https://github.com/cloudposse/terraform-null-label) - Terraform module designed to generate consistent names and tags for resources. Use terraform-null-label to implement a strict naming convention.
-
-
 
 
 ## References

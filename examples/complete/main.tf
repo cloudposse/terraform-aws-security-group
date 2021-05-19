@@ -24,8 +24,21 @@ module "new_security_group" {
       to_port                  = 22
       protocol                 = "tcp"
       cidr_blocks              = []
+      ipv6_cidr_blocks         = null
       source_security_group_id = aws_security_group.external.id
-      description              = "Allow SSH access form the external SG"
+      description              = "Allow SSH access from the external SG"
+      self                     = false
+    },
+    {
+      type                     = "ingress"
+      from_port                = 22
+      to_port                  = 22
+      protocol                 = "tcp"
+      cidr_blocks              = []
+      ipv6_cidr_blocks         = null
+      source_security_group_id = null
+      description              = "Allow SSH access from our own SG"
+      self                     = true
     },
     {
       type                     = "ingress"
@@ -33,8 +46,10 @@ module "new_security_group" {
       to_port                  = 443
       protocol                 = "all"
       cidr_blocks              = ["0.0.0.0/0"]
+      ipv6_cidr_blocks         = null
       source_security_group_id = null
       description              = null
+      self                     = null
     },
     {
       type                     = "egress"
@@ -42,8 +57,10 @@ module "new_security_group" {
       to_port                  = 65535
       protocol                 = "all"
       cidr_blocks              = ["0.0.0.0/0"]
+      ipv6_cidr_blocks         = null
       source_security_group_id = null
       description              = "Allow all outbound traffic"
+      self                     = null
     }
   ]
 
