@@ -61,6 +61,24 @@ description: |-
 # How to use this module. Should be an easy example to copy and paste.
 usage: |-
 
+  Note: Terraform requires that all the elements of the `rules` list be exactly
+  the same type. This means you must supply all the same keys and, for each key,
+  all the values for that key must be the same type. Any optional key, such as
+  `ipv6_cidr_blocks`, can be omitted from all the rules without problem. However,
+  if some rules have a key and other rules would omit the key if that were allowed
+  (e.g one rule has `cidr_blocks` and another rule has `self = true`, and neither
+  rule can include both `cidr_blocks` and `self`), instead of omitting the key,
+  include the key with value of `null`, unless the value is a list type, in which case
+  set the value to `[]` (an empty list).
+
+  Although `description` is optional, if you do not include a description,
+  the rule will be deleted and recreated if the index of the rule in the `rules`
+  list changes, which usually happens as a result of adding or removing a rule. Rules
+  that include a description will only be modified if the rule itself changes.
+  Also, if 2 rules specify the same `type`, `protocol`, `from_port`, and `to_port`,
+  they must not also have the same `description` (although if one or both rules
+  have no description supplied, that will work).
+
   ```hcl
   module "label" {
     source = "cloudposse/label/null"
@@ -91,6 +109,7 @@ usage: |-
     source = "cloudposse/security-group/aws"
     # Cloud Posse recommends pinning every module to a specific version
     # version = "x.x.x"
+
     rules = [
       {
         type        = "ingress"
@@ -98,13 +117,27 @@ usage: |-
         to_port     = 22
         protocol    = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
+        self        = null
+        description = "Allow SSH from anywhere"
       },
+      {
+        type        = "ingress"
+        from_port   = 80
+        to_port     = 80
+        protocol    = "tcp"
+        cidr_blocks = []
+        self        = true
+        description = "Allow HTTP from inside the security group"
+      },
+
       {
         type        = "egress"
         from_port   = 0
         to_port     = 65535
         protocol    = "all"
         cidr_blocks = ["0.0.0.0/0"]
+        self        = null
+        description = "Allow egress to anywhere"
       }
     ]
 
@@ -115,7 +148,7 @@ usage: |-
 # Example usage
 examples: |-
   Here is an example of using this module:
-  - [`examples/complete`](https://github.com/cloudposse/terraform-aws-security-group/) - complete example of using this module
+  - [`examples/complete`](https://github.com/cloudposse/terraform-aws-security-group/examples/complete) - complete example of using this module
 
 # How to get started quickly
 #quickstart: |-

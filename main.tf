@@ -8,70 +8,13 @@ locals {
   name                   = local.is_external ? join("", data.aws_security_group.external.*.name) : join("", aws_security_group.default.*.name)
   rules = module.this.enabled && var.rules != null ? {
     for indx, rule in flatten(var.rules) :
-    format("%s-%s-%s-%s-%s",
+    format("%v-%v-%v-%v-%s",
       rule.type,
       rule.protocol,
       rule.from_port,
       rule.to_port,
-      lookup(rule, "description", null) == null ? md5(format("Managed by Terraform #%d", indx)) : md5(rule.description)
-      ) => {
-      type        = rule.type
-      protocol    = rule.protocol
-      from_port   = rule.from_port
-      to_port     = rule.to_port
-      description = try(rule.description, format("Managed by Terraform #%d", indx))
-    }
-  } : {}
-  source_security_group_id = module.this.enabled && var.rules != null ? {
-    for indx, rule in flatten(var.rules) :
-    format("%s-%s-%s-%s-%s",
-      rule.type,
-      rule.protocol,
-      rule.from_port,
-      rule.to_port,
-      lookup(rule, "description", null) == null ? md5(format("Managed by Terraform #%d", indx)) : md5(rule.description)
-    ) => try(rule.source_security_group_id, null)
-  } : {}
-
-  cidr_blocks = module.this.enabled && var.rules != null ? {
-    for indx, rule in flatten(var.rules) :
-    format("%s-%s-%s-%s-%s",
-      rule.type,
-      rule.protocol,
-      rule.from_port,
-      rule.to_port,
-      lookup(rule, "description", null) == null ? md5(format("Managed by Terraform #%d", indx)) : md5(rule.description)
-    ) => try(rule.cidr_blocks, null) != null ? (length(rule.cidr_blocks) > 0 ? rule.cidr_blocks : null) : null
-  } : {}
-  ipv6_cidr_blocks = module.this.enabled && var.rules != null ? {
-    for indx, rule in flatten(var.rules) :
-    format("%s-%s-%s-%s-%s",
-      rule.type,
-      rule.protocol,
-      rule.from_port,
-      rule.to_port,
-      lookup(rule, "description", null) == null ? md5(format("Managed by Terraform #%d", indx)) : md5(rule.description)
-    ) => try(rule.ipv6_cidr_blocks, null) != null ? (length(rule.ipv6_cidr_blocks) > 0 ? rule.ipv6_cidr_blocks : null) : null
-  } : {}
-  prefix_list_ids = module.this.enabled && var.rules != null ? {
-    for indx, rule in flatten(var.rules) :
-    format("%s-%s-%s-%s-%s",
-      rule.type,
-      rule.protocol,
-      rule.from_port,
-      rule.to_port,
-      lookup(rule, "description", null) == null ? md5(format("Managed by Terraform #%d", indx)) : md5(rule.description)
-    ) => try(rule.prefix_list_ids, null) != null ? (length(rule.prefix_list_ids) > 0 ? rule.prefix_list_ids : null) : null
-  } : {}
-  self = module.this.enabled && var.rules != null ? {
-    for indx, rule in flatten(var.rules) :
-    format("%s-%s-%s-%s-%s",
-      rule.type,
-      rule.protocol,
-      rule.from_port,
-      rule.to_port,
-      lookup(rule, "description", null) == null ? md5(format("Managed by Terraform #%d", indx)) : md5(rule.description)
-    ) => try(rule.self, null)
+      try(rule["description"], null) == null ? md5(format("Managed by Terraform #%d", indx)) : md5(rule.description)
+    ) => rule
   } : {}
 }
 
@@ -98,15 +41,17 @@ resource "aws_security_group" "default" {
 resource "aws_security_group_rule" "default" {
   for_each = local.rules
 
-  security_group_id        = local.id
-  type                     = each.value.type
-  from_port                = each.value.from_port
-  to_port                  = each.value.to_port
-  protocol                 = each.value.protocol
-  description              = each.value.description
-  cidr_blocks              = lookup(local.cidr_blocks, each.key, null)
-  ipv6_cidr_blocks         = lookup(local.ipv6_cidr_blocks, each.key, null)
-  prefix_list_ids          = lookup(local.prefix_list_ids, each.key, null)
-  source_security_group_id = lookup(local.source_security_group_id, each.key, null)
-  self                     = lookup(local.self, each.key, null)
+  security_group_id = local.id
+  type              = each.value.type
+  from_port         = each.value.from_port
+  to_port           = each.value.to_port
+  protocol          = each.value.protocol
+  description       = lookup(each.value, "description", "Managed by Terraform")
+  # Convert any of a missing key, a value of null, or a value of empty list to null
+  cidr_blocks      = try(length(lookup(each.value, "cidr_blocks", [])), 0) > 0 ? each.value["cidr_blocks"] : null
+  ipv6_cidr_blocks = try(length(lookup(each.value, "ipv6_cidr_blocks", [])), 0) > 0 ? each.value["ipv6_cidr_blocks"] : null
+  prefix_list_ids  = try(length(lookup(each.value, "prefix_list_ids", [])), 0) > 0 ? each.value["prefix_list_ids"] : null
+  self             = coalesce(lookup(each.value, "self", null), false) ? true : null
+
+  source_security_group_id = lookup(each.value, "source_security_group_id", null)
 }

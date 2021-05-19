@@ -12,7 +12,8 @@ import (
 
 // Test the Terraform module in examples/complete using Terratest.
 func TestExamplesComplete(t *testing.T) {
-	t.Parallel()
+  // Cannot run in parallel with InitAndApply (parallel inits clobber each other) or default statefile name
+	//t.Parallel()
 
 	rand.Seed(time.Now().UnixNano())
 	randID := strconv.Itoa(rand.Intn(100000))
