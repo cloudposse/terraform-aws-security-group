@@ -12,3 +12,13 @@ output "name" {
   description = "The Security Group Name"
   value       = try(local.name, null)
 }
+
+output "aws_security_group" {
+  description = "All of the `aws_security_group` resource outputs"
+  value       = aws_security_group.default
+}
+
+output "aws_security_group_rule" {
+  description = "All of the `aws_security_group_rule` resource outputs"
+  value       = aws_security_group_rule.default
+}
