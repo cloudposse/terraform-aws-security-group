@@ -15,10 +15,10 @@ output "name" {
 
 output "aws_security_group" {
   description = "All of the `aws_security_group` resource outputs"
-  value       = aws_security_group.default
+  value       = try(aws_security_group.default, null)
 }
 
 output "aws_security_group_rule" {
   description = "All of the `aws_security_group_rule` resource outputs"
-  value       = aws_security_group_rule.default
+  value       = try(aws_security_group_rule.default, null)
 }
