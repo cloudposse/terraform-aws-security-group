@@ -259,10 +259,10 @@ Available targets:
 | Name | Description |
 |------|-------------|
 | <a name="output_arn"></a> [arn](#output\_arn) | The Security Group ARN |
-| <a name="output_aws_security_group"></a> [aws\_security\_group](#output\_aws\_security\_group) | All of the `aws_security_group` resource outputs |
-| <a name="output_aws_security_group_rule"></a> [aws\_security\_group\_rule](#output\_aws\_security\_group\_rule) | All of the `aws_security_group_rule` resource outputs |
 | <a name="output_id"></a> [id](#output\_id) | The Security Group ID |
+| <a name="output_metadata"></a> [metadata](#output\_metadata) | All of the `aws_security_group` resource outputs |
 | <a name="output_name"></a> [name](#output\_name) | The Security Group Name |
+| <a name="output_rules"></a> [rules](#output\_rules) | All of the `aws_security_group_rule` resource outputs |
 <!-- markdownlint-restore -->
 
 
