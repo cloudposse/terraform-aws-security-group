@@ -13,12 +13,12 @@ output "name" {
   value       = try(local.name, null)
 }
 
-output "aws_security_group" {
+output "metadata" {
   description = "All of the `aws_security_group` resource outputs"
   value       = try(aws_security_group.default, null)
 }
 
-output "aws_security_group_rule" {
+output "rules" {
   description = "All of the `aws_security_group_rule` resource outputs"
   value       = try(aws_security_group_rule.default, null)
 }
