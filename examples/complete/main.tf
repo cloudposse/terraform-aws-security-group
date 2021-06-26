@@ -4,9 +4,9 @@ provider "aws" {
 
 module "vpc" {
   source  = "cloudposse/vpc/aws"
-  version = "v0.18.2"
+  version = "v0.25.0"
 
-  cidr_block = "10.0.0.0/16"
+  cidr_block = "10.0.0.0/24"
 
   context = module.this.context
 }
@@ -16,30 +16,32 @@ module "vpc" {
 module "new_security_group" {
   source = "../.."
 
-  vpc_id = module.vpc.vpc_id
+  vpc_id              = module.vpc.vpc_id
+  open_egress_enabled = true
+  rule_matrix = {
+    # Allow ingress on ports 22 and 80 from created security grup, existing security group, and CIDR "10.0.0.0/8"
+    source_security_group_ids = [aws_security_group.existing.id]
+    cidr_blocks               = ["10.0.0.0/8"]
+    prefix_list_ids           = null
+    self                      = true
+    rules = [
+      {
+        type        = "ingress"
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
+        description = "Allow SSH access"
+      },
+      {
+        type        = "ingress"
+        from_port   = 80
+        to_port     = 80
+        protocol    = "tcp"
+        description = "Allow HTTP access"
+      },
+    ]
+  }
   rules = [
-    {
-      type                     = "ingress"
-      from_port                = 22
-      to_port                  = 22
-      protocol                 = "tcp"
-      cidr_blocks              = []
-      ipv6_cidr_blocks         = null
-      source_security_group_id = aws_security_group.external.id
-      description              = "Allow SSH access from the external SG"
-      self                     = false
-    },
-    {
-      type                     = "ingress"
-      from_port                = 22
-      to_port                  = 22
-      protocol                 = "tcp"
-      cidr_blocks              = []
-      ipv6_cidr_blocks         = null
-      source_security_group_id = null
-      description              = "Allow SSH access from our own SG"
-      self                     = true
-    },
     {
       type                     = "ingress"
       from_port                = 443
@@ -51,17 +53,6 @@ module "new_security_group" {
       description              = null
       self                     = null
     },
-    {
-      type                     = "egress"
-      from_port                = 0
-      to_port                  = 65535
-      protocol                 = "all"
-      cidr_blocks              = ["0.0.0.0/0"]
-      ipv6_cidr_blocks         = null
-      source_security_group_id = null
-      description              = "Allow all outbound traffic"
-      self                     = null
-    }
   ]
 
   context = module.this.context
@@ -69,19 +60,19 @@ module "new_security_group" {
 
 # Create rules for pre-created security group
 
-resource "aws_security_group" "external" {
-  name_prefix = format("%s-%s-", module.this.id, "external")
+resource "aws_security_group" "existing" {
+  name_prefix = format("%s-%s-", module.this.id, "existing")
   vpc_id      = module.vpc.vpc_id
   tags        = module.this.tags
 }
 
-module "external_security_group" {
+module "existing_security_group" {
   source = "../.."
 
-  vpc_id                 = module.vpc.vpc_id
-  id                     = aws_security_group.external.id
-  rules                  = var.rules
-  security_group_enabled = false
+  vpc_id                     = module.vpc.vpc_id
+  existing_security_group_id = aws_security_group.existing.id
+  rules                      = var.rules
+  create_security_group      = false
 
   context = module.this.context
 }
@@ -91,9 +82,10 @@ module "external_security_group" {
 module "disabled_security_group" {
   source = "../.."
 
-  vpc_id  = module.vpc.vpc_id
-  id      = aws_security_group.external.id
-  rules   = var.rules
+  vpc_id                     = module.vpc.vpc_id
+  existing_security_group_id = aws_security_group.existing.id
+  rules                      = var.rules
+
   context = module.this.context
   enabled = false
 }

@@ -1,12 +1,18 @@
 locals {
-  security_group_enabled = module.this.enabled && var.security_group_enabled
-  is_external            = module.this.enabled && var.security_group_enabled == false
-  use_name               = var.use_name_prefix ? null : module.this.id
-  use_name_prefix        = var.use_name_prefix ? format("%s%s", module.this.id, module.this.delimiter) : null
-  id                     = local.is_external ? join("", data.aws_security_group.external.*.id) : join("", aws_security_group.default.*.id)
-  arn                    = local.is_external ? join("", data.aws_security_group.external.*.arn) : join("", aws_security_group.default.*.arn)
-  name                   = local.is_external ? join("", data.aws_security_group.external.*.name) : join("", aws_security_group.default.*.name)
-  rules = module.this.enabled && var.rules != null ? {
+  enabled = module.this.enabled
+  # Because Terraform formatting for `not` (!) changes between versions 0.13 and 0.14, use == false instead
+  create_security_group = local.enabled && var.create_security_group
+  lookup_security_group = local.enabled && var.create_security_group == false
+  created_security_group = local.create_security_group ? (
+    var.create_before_destroy ? aws_security_group.cbd[0] : aws_security_group.default[0]
+  ) : null
+  security_group_id = local.enabled ? (
+    # Use coalesce() here to hack an error message into the output
+    var.create_security_group ? local.created_security_group.id : coalesce(var.existing_security_group_id,
+    "use_existing_security_group is true, but no ID supplied ")
+  ) : null
+
+  rules = local.enabled && var.rules != null ? {
     for indx, rule in flatten(var.rules) :
     format("%v-%v-%v-%v-%s",
       rule.type,
@@ -16,22 +22,31 @@ locals {
       try(rule["description"], null) == null ? md5(format("Managed by Terraform #%d", indx)) : md5(rule.description)
     ) => rule
   } : {}
+
+  rule_matrix_rule_count = try(length(var.rule_matrix.rules), 0)
+  rule_matrix_enabled    = local.enabled && local.rule_matrix_rule_count > 0
 }
 
-data "aws_security_group" "external" {
-  count  = local.is_external ? 1 : 0
-  id     = var.id
-  vpc_id = var.vpc_id
-}
-
+# You cannot toggle `create_before_destroy` based on input,
+# you have to have a completely separate resource to change it.
 resource "aws_security_group" "default" {
-  count = local.security_group_enabled && local.is_external == false ? 1 : 0
+  # Because Terraform formatting for `not` (!) changes between versions 0.13 and 0.14, use == false instead
+  count = local.create_security_group && var.create_before_destroy == false ? 1 : 0
 
-  name        = local.use_name
-  name_prefix = local.use_name_prefix
+  name        = coalesce(var.security_group_name, module.this.id)
   description = var.description
   vpc_id      = var.vpc_id
-  tags        = module.this.tags
+  tags        = merge(module.this.tags, length(var.security_group_name) > 0 ? { Name = var.security_group_name } : {})
+}
+
+resource "aws_security_group" "cbd" {
+  # Because we use `== false` in the other resource, use `== true` for symmetry
+  count = local.create_security_group && var.create_before_destroy == true ? 1 : 0
+
+  name_prefix = coalesce(var.security_group_name, format("%s%s", module.this.id, module.this.delimiter))
+  description = var.description
+  vpc_id      = var.vpc_id
+  tags        = merge(module.this.tags, length(var.security_group_name) > 0 ? { Name = var.security_group_name } : {})
 
   lifecycle {
     create_before_destroy = true
@@ -41,7 +56,7 @@ resource "aws_security_group" "default" {
 resource "aws_security_group_rule" "default" {
   for_each = local.rules
 
-  security_group_id = local.id
+  security_group_id = local.security_group_id
   type              = each.value.type
   from_port         = each.value.from_port
   to_port           = each.value.to_port
@@ -54,4 +69,63 @@ resource "aws_security_group_rule" "default" {
   self             = coalesce(lookup(each.value, "self", null), false) ? true : null
 
   source_security_group_id = lookup(each.value, "source_security_group_id", null)
+}
+
+resource "aws_security_group_rule" "self" {
+  # We use "== true" here because you cannot use `null` as a conditional
+  count = local.rule_matrix_enabled && try(var.rule_matrix.self, null) == true ? local.rule_matrix_rule_count : 0
+
+  security_group_id = local.security_group_id
+  type              = var.rule_matrix.rules[count.index].type
+  from_port         = var.rule_matrix.rules[count.index].from_port
+  to_port           = var.rule_matrix.rules[count.index].to_port
+  protocol          = var.rule_matrix.rules[count.index].protocol
+  description       = try(var.rule_matrix.rules[count.index].description, "Managed by Terraform")
+
+  self = var.rule_matrix.self
+}
+
+resource "aws_security_group_rule" "sg" {
+  # source_security_group_ids may be unknown at plan time and there is no valid proxy for them,
+  # so there is no point in trying to come up with a static string key to use with for_each.
+  count = local.rule_matrix_enabled ? length(var.rule_matrix.source_security_group_ids) * local.rule_matrix_rule_count : 0
+
+  security_group_id = local.security_group_id
+  type              = var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].type
+  from_port         = var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].from_port
+  to_port           = var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].to_port
+  protocol          = var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].protocol
+  description       = try(var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].description, "Managed by Terraform")
+
+  source_security_group_id = var.rule_matrix.source_security_group_ids[floor(count.index / local.rule_matrix_rule_count)]
+}
+
+resource "aws_security_group_rule" "cidr" {
+  count = local.rule_matrix_enabled && (try(length(var.rule_matrix.cidr_blocks), 0) +
+    try(length(var.rule_matrix.ipv6_cidr_blocks), 0) +
+  try(length(var.rule_matrix.prefix_list_ids), 0)) > 0 ? local.rule_matrix_rule_count : 0
+
+  security_group_id = local.security_group_id
+  type              = "ingress"
+  cidr_blocks       = try(length(var.rule_matrix.cidr_blocks), 0) > 0 ? var.rule_matrix.cidr_blocks : null
+  ipv6_cidr_blocks  = try(length(var.rule_matrix.ipv6_cidr_blocks), 0) > 0 ? var.rule_matrix.ipv6_cidr_blocks : null
+  prefix_list_ids   = try(length(var.rule_matrix.prefix_list_ids), 0) > 0 ? var.rule_matrix.prefix_list_ids : null
+  from_port         = var.rule_matrix.rules[count.index].from_port
+  to_port           = var.rule_matrix.rules[count.index].to_port
+  protocol          = var.rule_matrix.rules[count.index].protocol
+  description       = try(var.rule_matrix.rules[count.index].description, "Managed by Terraform")
+}
+
+
+resource "aws_security_group_rule" "egress" {
+  count = local.enabled && var.open_egress_enabled ? 1 : 0
+
+  security_group_id = local.security_group_id
+  type              = "egress"
+  from_port         = 0
+  to_port           = 65535
+  protocol          = "all"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  description       = "Allow all egress"
 }

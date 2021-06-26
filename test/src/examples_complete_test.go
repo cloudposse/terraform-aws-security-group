@@ -48,14 +48,17 @@ func TestExamplesComplete(t *testing.T) {
 	assert.Contains(t, newSgARN, "arn:aws:ec2", "SG ID should contains substring 'arn:aws:ec2'")
 	assert.Equal(t, "eg-ue2-test-sg-"+randID, newSgName)
 
-	// Verify that outputs are valid when `security_group_enabled=false` and `sg_id` set to external SG ID
-	externalSgID := terraform.Output(t, terraformOptions, "external_sg_id")
-	externalSgARN := terraform.Output(t, terraformOptions, "external_sg_arn")
-	externalSgName := terraform.Output(t, terraformOptions, "external_sg_name")
+/*
+  Module used to output SG information for existing security groups, but no longer does
+  // Verify that outputs are valid when `security_group_enabled=false` and `sg_id` set to existing SG ID
+	existingSgID := terraform.Output(t, terraformOptions, "existing_sg_id")
+	existingSgARN := terraform.Output(t, terraformOptions, "existing_sg_arn")
+	existingSgName := terraform.Output(t, terraformOptions, "existing_sg_name")
 
-	assert.Contains(t, externalSgID, "sg-", "SG ID should contains substring 'sg-'")
-	assert.Contains(t, externalSgARN, "arn:aws:ec2", "SG ID should contains substring 'arn:aws:ec2'")
-	assert.Contains(t, externalSgName, "eg-ue2-test-sg-"+randID)
+	assert.Contains(t, existingSgID, "sg-", "SG ID should contains substring 'sg-'")
+	assert.Contains(t, existingSgARN, "arn:aws:ec2", "SG ID should contains substring 'arn:aws:ec2'")
+	assert.Contains(t, existingSgName, "eg-ue2-test-sg-"+randID)
+*/
 
 	// Verify that outputs are empty when module is disabled
 	disabledSgID := terraform.Output(t, terraformOptions, "disabled_sg_id")
