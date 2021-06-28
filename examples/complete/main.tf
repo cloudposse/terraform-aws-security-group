@@ -16,7 +16,7 @@ module "vpc" {
 module "new_security_group" {
   source = "../.."
 
-  vpc_id              = module.vpc.vpc_id
+  vpc_id           = module.vpc.vpc_id
   allow_all_egress = true
   rule_matrix = {
     # Allow ingress on ports 22 and 80 from created security grup, existing security group, and CIDR "10.0.0.0/8"

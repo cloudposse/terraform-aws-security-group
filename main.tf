@@ -12,16 +12,7 @@ locals {
     "`create_security_group` is false, but no ID was supplied ")
   ) : null
 
-  rules = local.enabled && var.rules != null ? {
-    for indx, rule in flatten(var.rules) :
-    format("%v-%v-%v-%v-%s",
-      rule.type,
-      rule.protocol,
-      rule.from_port,
-      rule.to_port,
-      try(rule["description"], null) == null ? md5(format("Managed by Terraform #%d", indx)) : md5(rule.description)
-    ) => rule
-  } : {}
+  rules = local.enabled && var.rules != null ? var.rules : []
 
   rule_matrix_rule_count = try(length(var.rule_matrix.rules), 0)
   rule_matrix_enabled    = local.enabled && local.rule_matrix_rule_count > 0
@@ -54,21 +45,21 @@ resource "aws_security_group" "cbd" {
 }
 
 resource "aws_security_group_rule" "default" {
-  for_each = local.rules
+  count = length(local.rules)
 
   security_group_id = local.security_group_id
-  type              = each.value.type
-  from_port         = each.value.from_port
-  to_port           = each.value.to_port
-  protocol          = each.value.protocol
-  description       = lookup(each.value, "description", "Managed by Terraform")
+  type              = local.rules[count.index].type
+  from_port         = local.rules[count.index].from_port
+  to_port           = local.rules[count.index].to_port
+  protocol          = local.rules[count.index].protocol
+  description       = lookup(local.rules[count.index], "description", "Managed by Terraform")
   # Convert any of a missing key, a value of null, or a value of empty list to null
-  cidr_blocks      = try(length(lookup(each.value, "cidr_blocks", [])), 0) > 0 ? each.value["cidr_blocks"] : null
-  ipv6_cidr_blocks = try(length(lookup(each.value, "ipv6_cidr_blocks", [])), 0) > 0 ? each.value["ipv6_cidr_blocks"] : null
-  prefix_list_ids  = try(length(lookup(each.value, "prefix_list_ids", [])), 0) > 0 ? each.value["prefix_list_ids"] : null
-  self             = coalesce(lookup(each.value, "self", null), false) ? true : null
+  cidr_blocks      = try(length(lookup(local.rules[count.index], "cidr_blocks", [])), 0) > 0 ? local.rules[count.index]["cidr_blocks"] : null
+  ipv6_cidr_blocks = try(length(lookup(local.rules[count.index], "ipv6_cidr_blocks", [])), 0) > 0 ? local.rules[count.index]["ipv6_cidr_blocks"] : null
+  prefix_list_ids  = try(length(lookup(local.rules[count.index], "prefix_list_ids", [])), 0) > 0 ? local.rules[count.index]["prefix_list_ids"] : null
+  self             = coalesce(lookup(local.rules[count.index], "self", null), false) ? true : null
 
-  source_security_group_id = lookup(each.value, "source_security_group_id", null)
+  source_security_group_id = lookup(local.rules[count.index], "source_security_group_id", null)
 }
 
 resource "aws_security_group_rule" "self" {

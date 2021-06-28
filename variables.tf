@@ -66,25 +66,25 @@ variable "allow_all_egress" {
 }
 
 variable "rule_matrix" {
-    # rule_matrix is independent of the `rules` input.
-    # Only the rules specified in the `rule_matrix` object are applied to the subjects.
-    #  Schema:
-    #  {
-    #    # these top level lists define all the subjects to which rule_matrix rules will be applied
-    #    source_security_group_ids = list of source security group IDs to apply all rules to
-    #    cidr_blocks = list of ipv4 CIDR blocks to apply all rules to
-    #    ipv6_cidr_blocks= list of ipv6 CIDR blocks to apply all rules to
-    #    prefix_list_ids = list of prefix list IDs to apply all rules to
-    #    self = # set "true" to apply the rules to the created or existing security group
-    #
-    #    # each rule in the rules list will be applied to every subject defined above
-    #    rules = [{
-    #      type = "egress"
-    #      from_port = 0
-    #      to_port = 65535
-    #      protocol = "all"
-    #      description = "Allow full egress"
-    #    }]
+  # rule_matrix is independent of the `rules` input.
+  # Only the rules specified in the `rule_matrix` object are applied to the subjects.
+  #  Schema:
+  #  {
+  #    # these top level lists define all the subjects to which rule_matrix rules will be applied
+  #    source_security_group_ids = list of source security group IDs to apply all rules to
+  #    cidr_blocks = list of ipv4 CIDR blocks to apply all rules to
+  #    ipv6_cidr_blocks= list of ipv6 CIDR blocks to apply all rules to
+  #    prefix_list_ids = list of prefix list IDs to apply all rules to
+  #    self = # set "true" to apply the rules to the created or existing security group
+  #
+  #    # each rule in the rules list will be applied to every subject defined above
+  #    rules = [{
+  #      type = "egress"
+  #      from_port = 0
+  #      to_port = 65535
+  #      protocol = "all"
+  #      description = "Allow full egress"
+  #    }]
 
   type        = any
   default     = { rules = [] }
