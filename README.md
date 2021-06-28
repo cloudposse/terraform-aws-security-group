@@ -94,23 +94,48 @@ The table below correctly indicates which inputs are required.
 
 
 
-Note: Terraform requires that all the elements of the `rules` list be exactly
-the same type. This means you must supply all the same keys and, for each key,
-all the values for that key must be the same type. Any optional key, such as
-`ipv6_cidr_blocks`, can be omitted from all the rules without problem. However,
-if some rules have a key and other rules would omit the key if that were allowed
-(e.g one rule has `cidr_blocks` and another rule has `self = true`, and neither
-rule can include both `cidr_blocks` and `self`), instead of omitting the key,
-include the key with value of `null`, unless the value is a list type, in which case
+This module provides 2 ways to set security group rules rules. The `rules` input takes a list of
+rule maps. The maps are compatible with (have the same keys and accept the same values) the
+Terraform [aws_security_group_rule resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule).
+While some of the map keys are optional, Terraform requires that all maps in the list have exactly the same
+set of keys, so if you set, for example `prefix_list_ids` in one rule, you need to include that key in all the maps.
+In rules where the key would othewise be omitted, include the key with value of `null`, unless the value is a list type, in which case
 set the value to `[]` (an empty list).
 
-Although `description` is optional, if you do not include a description,
-the rule will be deleted and recreated if the index of the rule in the `rules`
-list changes, which usually happens as a result of adding or removing a rule. Rules
-that include a description will only be modified if the rule itself changes.
-Also, if 2 rules specify the same `type`, `protocol`, `from_port`, and `to_port`,
-they must not also have the same `description` (although if one or both rules
-have no description supplied, that will work).
+The other way to set rules is via the `rule_matrix` input. This splits the keys of the `aws_security_group_rule` resource
+into to sets: one set defines the rule and descripition, the other set defines the subject of the rule. As with
+`rules` and explained in the previous paragraph, all elements of the list must have all the same keys. This also holds
+for all the elements of the `rules_matrix.rules` list.
+
+The schema for the `rule matrix is:
+
+```hcl
+{
+  # these top level lists define all the subjects to which rule_matrix rules will be applied
+  source_security_group_ids = list of source security group IDs to apply all rules to
+  cidr_blocks = list of ipv4 CIDR blocks to apply all rules to
+  ipv6_cidr_blocks = list of ipv6 CIDR blocks to apply all rules to
+  prefix_list_ids = list of prefix list IDs to apply all rules to
+  self = # set "true" to apply the rules to the created or existing security group
+
+  # each rule in the rules list will be applied to every subject defined above
+  rules = [{
+    type = type of rule, either "ingress" or "egress"
+    from_port = start range of protocol port
+    to_port = end range of protocol port, max is 65535
+    protocol = ip protocol name or number or "all" for all
+    description = free form text description of the rule
+  }]
+}
+```
+
+The way Terraform works and the way this module is implemented causes security group rules
+to be dependent on their place in the input lists. If a rule is deleted and the other rules therefore move
+closer to the start of the list, those rules will be deleted and recreated. This should have no significant
+operational impact, but it can make a small change look like a big one when viewing the output of
+Terraform plan. After careful consideration, we have decided that this is preferable to the
+impositions and limitations that would come from a solution that avoids it.
+
 
 ```hcl
 module "label" {
@@ -143,6 +168,9 @@ module "sg" {
   # Cloud Posse recommends pinning every module to a specific version
   # version = "x.x.x"
 
+  # Allow unlimited egress
+  allow_all_egress = true
+
   rules = [
     {
       type        = "ingress"
@@ -162,16 +190,6 @@ module "sg" {
       self        = true
       description = "Allow HTTP from inside the security group"
     },
-
-    {
-      type        = "egress"
-      from_port   = 0
-      to_port     = 65535
-      protocol    = "all"
-      cidr_blocks = ["0.0.0.0/0"]
-      self        = null
-      description = "Allow egress to anywhere"
-    }
   ]
 
   context = module.label.context
@@ -237,10 +255,10 @@ Available targets:
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_additional_tag_map"></a> [additional\_tag\_map](#input\_additional\_tag\_map) | Additional tags for appending to tags\_as\_list\_of\_maps. Not added to `tags`. | `map(string)` | `{}` | no |
-| <a name="input_allow_all_egress"></a> [allow\_all\_egress](#input\_allow\_all\_egress) | A convenience that adds to the rules in `var.rules` a rule that allows all egress.<br>If this is false and `var.rules` does not specify any egress rules, then<br>no egress will be allowed. | `bool` | `false` | no |
+| <a name="input_allow_all_egress"></a> [allow\_all\_egress](#input\_allow\_all\_egress) | A convenience that adds to the rules specified elsewhere a rule that allows all egress.<br>If this is false and no egress rules are specified via `rules` or `rule-matrix`, then no egress will be allowed. | `bool` | `false` | no |
 | <a name="input_attributes"></a> [attributes](#input\_attributes) | Additional attributes (e.g. `1`) | `list(string)` | `[]` | no |
 | <a name="input_context"></a> [context](#input\_context) | Single object for setting entire context at once.<br>See description of individual variables for details.<br>Leave string and numeric variables as `null` to use default value.<br>Individual variable settings (non-null) override settings in context object,<br>except for attributes, tags, and additional\_tag\_map, which are merged. | `any` | <pre>{<br>  "additional_tag_map": {},<br>  "attributes": [],<br>  "delimiter": null,<br>  "enabled": true,<br>  "environment": null,<br>  "id_length_limit": null,<br>  "label_key_case": null,<br>  "label_order": [],<br>  "label_value_case": null,<br>  "name": null,<br>  "namespace": null,<br>  "regex_replace_chars": null,<br>  "stage": null,<br>  "tags": {}<br>}</pre> | no |
-| <a name="input_create_before_destroy"></a> [create\_before\_destroy](#input\_create\_before\_destroy) | Set `true` to enable terraform `create_before_destroy` behavior.<br>Note that changing this value will change the security group name. | `bool` | `false` | no |
+| <a name="input_create_before_destroy"></a> [create\_before\_destroy](#input\_create\_before\_destroy) | Set `true` to enable terraform `create_before_destroy` behavior.<br>Note that changing this value will change the security group name and cause the security group to be replaced. | `bool` | `false` | no |
 | <a name="input_create_security_group"></a> [create\_security\_group](#input\_create\_security\_group) | Set `true` to create a new security group. If false, `existing_security_group_id` must be provided. | `bool` | `true` | no |
 | <a name="input_delimiter"></a> [delimiter](#input\_delimiter) | Delimiter to be used between `namespace`, `environment`, `stage`, `name` and `attributes`.<br>Defaults to `-` (hyphen). Set to `""` to use no delimiter at all. | `string` | `null` | no |
 | <a name="input_description"></a> [description](#input\_description) | The Security Group description. | `string` | `"Managed by Terraform"` | no |

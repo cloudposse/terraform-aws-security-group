@@ -34,7 +34,7 @@ variable "create_before_destroy" {
   default     = false
   description = <<-EOT
     Set `true` to enable terraform `create_before_destroy` behavior.
-    Note that changing this value will change the security group name.
+    Note that changing this value will change the security group name and cause the security group to be replaced.
     EOT
 }
 
@@ -59,9 +59,8 @@ variable "allow_all_egress" {
   type        = bool
   default     = false
   description = <<-EOT
-    A convenience that adds to the rules in `var.rules` a rule that allows all egress.
-    If this is false and `var.rules` does not specify any egress rules, then
-    no egress will be allowed.
+    A convenience that adds to the rules specified elsewhere a rule that allows all egress.
+    If this is false and no egress rules are specified via `rules` or `rule-matrix`, then no egress will be allowed.
     EOT
 }
 
@@ -73,7 +72,7 @@ variable "rule_matrix" {
   #    # these top level lists define all the subjects to which rule_matrix rules will be applied
   #    source_security_group_ids = list of source security group IDs to apply all rules to
   #    cidr_blocks = list of ipv4 CIDR blocks to apply all rules to
-  #    ipv6_cidr_blocks= list of ipv6 CIDR blocks to apply all rules to
+  #    ipv6_cidr_blocks = list of ipv6 CIDR blocks to apply all rules to
   #    prefix_list_ids = list of prefix list IDs to apply all rules to
   #    self = # set "true" to apply the rules to the created or existing security group
   #
