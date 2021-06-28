@@ -57,7 +57,6 @@
 | <a name="input_security_group_name"></a> [security\_group\_name](#input\_security\_group\_name) | The name to assign to the security group. Must be unique within the account.<br>If not provided, will be derived from the `null-label.context` passed in.<br>If `create_before_destroy` is true, will be used as a name prefix. | `string` | `""` | no |
 | <a name="input_stage"></a> [stage](#input\_stage) | Stage, e.g. 'prod', 'staging', 'dev', OR 'source', 'build', 'test', 'deploy', 'release' | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Additional tags (e.g. `map('BusinessUnit','XYZ')` | `map(string)` | `{}` | no |
-| <a name="input_unstable_output_enabled"></a> [unstable\_output\_enabled](#input\_unstable\_output\_enabled) | Some outputs are unstable, meaning that they can show a change even when no resource changes are made.<br>These outputs are suppressed by default. Set `unstable_output_enabled` to enable them. | `bool` | `false` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | The VPC ID where Security Group will be created. | `string` | n/a | yes |
 
 ## Outputs
@@ -67,6 +66,4 @@
 | <a name="output_arn"></a> [arn](#output\_arn) | The created Security Group ARN |
 | <a name="output_id"></a> [id](#output\_id) | The created Security Group ID |
 | <a name="output_name"></a> [name](#output\_name) | The created Security Group Name |
-| <a name="output_rules"></a> [rules](#output\_rules) | (UNSTABLE) Details about all the security group rules created |
-| <a name="output_security_group_details"></a> [security\_group\_details](#output\_security\_group\_details) | (UNSTABLE) Details about the security group created |
 <!-- markdownlint-restore -->

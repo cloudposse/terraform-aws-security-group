@@ -13,16 +13,6 @@ output "created_sg_name" {
   value       = module.new_security_group.name
 }
 
-output "created_sg_details" {
-  description = "Details about the security group created"
-  value       = module.new_security_group.security_group_details
-}
-
-output "created_sg_rules" {
-  description = "Details about all the security group rules created for the created security group"
-  value       = module.new_security_group.rules
-}
-
 output "existing_sg_id" {
   description = "The existing Security Group ID"
   value       = module.existing_security_group.id
@@ -36,11 +26,6 @@ output "existing_sg_arn" {
 output "existing_sg_name" {
   description = "The existing Security Group Name"
   value       = module.existing_security_group.name
-}
-
-output "existing_sg_rules" {
-  description = "Details about all the security group rules created for the existing security group"
-  value       = module.existing_security_group.rules
 }
 
 output "disabled_sg_id" {
