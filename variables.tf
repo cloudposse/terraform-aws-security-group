@@ -92,3 +92,12 @@ variable "rule_matrix" {
     A convenient way to apply the same set of rules to a set of subjects. See README for details.
     EOT
 }
+
+variable "unstable_output_enabled" {
+  type        = bool
+  default     = false
+  description = <<-EOT
+    Some outputs are unstable, meaning that they can show a change even when no resource changes are made.
+    These outputs are suppressed by default. Set `unstable_output_enabled` to enable them.
+    EOT
+}

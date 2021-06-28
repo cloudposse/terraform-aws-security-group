@@ -14,11 +14,11 @@ output "name" {
 }
 
 output "security_group_details" {
-  description = "Details about the security group created"
-  value       = var.create_before_destroy ? aws_security_group.cbd : aws_security_group.default
+  description = "(UNSTABLE) Details about the security group created"
+  value       = var.unstable_output_enabled ? (var.create_before_destroy ? aws_security_group.cbd : aws_security_group.default) : null
 }
 
 output "rules" {
-  description = "Details about all the security group rules created"
-  value       = concat(try(values(aws_security_group_rule.default), []), aws_security_group_rule.sg, aws_security_group_rule.cidr, aws_security_group_rule.self, aws_security_group_rule.egress)
+  description = "(UNSTABLE) Details about all the security group rules created"
+  value       = var.unstable_output_enabled ? concat(try(values(aws_security_group_rule.default), []), aws_security_group_rule.sg, aws_security_group_rule.cidr, aws_security_group_rule.self, aws_security_group_rule.egress) : null
 }
