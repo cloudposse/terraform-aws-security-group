@@ -55,38 +55,40 @@ variable "rules" {
   EOT
 }
 
-variable "open_egress_enabled" {
+variable "allow_all_egress" {
   type        = bool
   default     = false
   description = <<-EOT
-    A convenience. Add to the rules in `var.rules` a rule that allows all egress.
+    A convenience that adds to the rules in `var.rules` a rule that allows all egress.
     If this is false and `var.rules` does not specify any egress rules, then
     no egress will be allowed.
     EOT
 }
 
 variable "rule_matrix" {
+    # rule_matrix is independent of the `rules` input.
+    # Only the rules specified in the `rule_matrix` object are applied to the subjects.
+    #  Schema:
+    #  {
+    #    # these top level lists define all the subjects to which rule_matrix rules will be applied
+    #    source_security_group_ids = list of source security group IDs to apply all rules to
+    #    cidr_blocks = list of ipv4 CIDR blocks to apply all rules to
+    #    ipv6_cidr_blocks= list of ipv6 CIDR blocks to apply all rules to
+    #    prefix_list_ids = list of prefix list IDs to apply all rules to
+    #    self = # set "true" to apply the rules to the created or existing security group
+    #
+    #    # each rule in the rules list will be applied to every subject defined above
+    #    rules = [{
+    #      type = "egress"
+    #      from_port = 0
+    #      to_port = 65535
+    #      protocol = "all"
+    #      description = "Allow full egress"
+    #    }]
+
   type        = any
   default     = { rules = [] }
   description = <<-EOT
-    A convenience. Apply the same list of rules to all the provided security groups and CIDRs and self.
-    Type is object as specified in the default, but keys are optional except for `rules`.
-    The `rules` list is a list of maps that are fully compatible with the `aws_security_group_rule` resource,
-    but any keys already at the top level will be ignored.  Rules keys listed in the default are required, except for `description`.
-    All elements of the list must have the same set of keys and each key must have a consistent value type.
-    Example:
-    {
-      source_security_group_ids = []
-      cidr_blocks= []
-      ipv6_cidr_blocks= []
-      prefix_list_ids = []
-      self = true
-      rules = [{
-        type = "egress"
-        from_port = 0
-        to_port = 65535
-        protocol = "all"
-        description = "Allow full egress"
-    }]
+    A convenient way to apply the same set of rules to a set of subjects. See README for details.
     EOT
 }

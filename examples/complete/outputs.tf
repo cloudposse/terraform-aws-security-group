@@ -1,25 +1,25 @@
-output "new_sg_id" {
+output "created_sg_id" {
   description = "The new one Security Group ID"
   value       = module.new_security_group.id
 }
 
-output "new_sg_arn" {
+output "created_sg_arn" {
   description = "The new one Security Group ARN"
   value       = module.new_security_group.arn
 }
 
-output "new_sg_name" {
+output "created_sg_name" {
   description = "The new one Security Group Name"
   value       = module.new_security_group.name
 }
 
-output "new_sg_details" {
+output "created_sg_details" {
   description = "Details about the security group created"
   value       = module.new_security_group.security_group_details
 }
 
-output "new_sg_rules" {
-  description = "Details about all the security group rules created for the existing security group"
+output "created_sg_rules" {
+  description = "Details about all the security group rules created for the created security group"
   value       = module.new_security_group.rules
 }
 

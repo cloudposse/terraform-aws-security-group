@@ -9,7 +9,7 @@ locals {
   security_group_id = local.enabled ? (
     # Use coalesce() here to hack an error message into the output
     var.create_security_group ? local.created_security_group.id : coalesce(var.existing_security_group_id,
-    "use_existing_security_group is true, but no ID supplied ")
+    "`create_security_group` is false, but no ID was supplied ")
   ) : null
 
   rules = local.enabled && var.rules != null ? {
@@ -118,7 +118,7 @@ resource "aws_security_group_rule" "cidr" {
 
 
 resource "aws_security_group_rule" "egress" {
-  count = local.enabled && var.open_egress_enabled ? 1 : 0
+  count = local.enabled && var.allow_all_egress ? 1 : 0
 
   security_group_id = local.security_group_id
   type              = "egress"

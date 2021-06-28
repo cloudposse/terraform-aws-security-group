@@ -40,9 +40,9 @@ func TestExamplesComplete(t *testing.T) {
 	// Run `terraform output` to get the value of an output variable
 
 	// Verify that outputs are valid when `security_group_enabled=true`
-	newSgID := terraform.Output(t, terraformOptions, "new_sg_id")
-	newSgARN := terraform.Output(t, terraformOptions, "new_sg_arn")
-	newSgName := terraform.Output(t, terraformOptions, "new_sg_name")
+	newSgID := terraform.Output(t, terraformOptions, "created_sg_id")
+	newSgARN := terraform.Output(t, terraformOptions, "created_sg_arn")
+	newSgName := terraform.Output(t, terraformOptions, "created_sg_name")
 
 	assert.Contains(t, newSgID, "sg-", "SG ID should contains substring 'sg-'")
 	assert.Contains(t, newSgARN, "arn:aws:ec2", "SG ID should contains substring 'arn:aws:ec2'")

@@ -17,7 +17,7 @@ module "new_security_group" {
   source = "../.."
 
   vpc_id              = module.vpc.vpc_id
-  open_egress_enabled = true
+  allow_all_egress = true
   rule_matrix = {
     # Allow ingress on ports 22 and 80 from created security grup, existing security group, and CIDR "10.0.0.0/8"
     source_security_group_ids = [aws_security_group.existing.id]
