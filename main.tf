@@ -1,5 +1,6 @@
 locals {
   enabled = module.this.enabled
+  default_rule_description = "Managed by Terraform"
   # Because Terraform formatting for `not` (!) changes between versions 0.13 and 0.14, use == false instead
   create_security_group = local.enabled && var.create_security_group
   lookup_security_group = local.enabled && var.create_security_group == false
@@ -25,7 +26,7 @@ resource "aws_security_group" "default" {
   count = local.create_security_group && var.create_before_destroy == false ? 1 : 0
 
   name        = coalesce(var.security_group_name, module.this.id)
-  description = var.description
+  description = var.security_group_description
   vpc_id      = var.vpc_id
   tags        = merge(module.this.tags, length(var.security_group_name) > 0 ? { Name = var.security_group_name } : {})
 }
@@ -35,7 +36,7 @@ resource "aws_security_group" "cbd" {
   count = local.create_security_group && var.create_before_destroy == true ? 1 : 0
 
   name_prefix = coalesce(var.security_group_name, format("%s%s", module.this.id, module.this.delimiter))
-  description = var.description
+  description = var.security_group_description
   vpc_id      = var.vpc_id
   tags        = merge(module.this.tags, length(var.security_group_name) > 0 ? { Name = var.security_group_name } : {})
 
@@ -52,8 +53,8 @@ resource "aws_security_group_rule" "default" {
   from_port         = local.rules[count.index].from_port
   to_port           = local.rules[count.index].to_port
   protocol          = local.rules[count.index].protocol
-  description       = lookup(local.rules[count.index], "description", "Managed by Terraform")
-  # Convert any of a missing key, a value of null, or a value of empty list to null
+  description       = lookup(local.rules[count.index], "description", local.default_rule_description)
+  # Convert a missing key, a value of null, or a value of empty list to null
   cidr_blocks      = try(length(lookup(local.rules[count.index], "cidr_blocks", [])), 0) > 0 ? local.rules[count.index]["cidr_blocks"] : null
   ipv6_cidr_blocks = try(length(lookup(local.rules[count.index], "ipv6_cidr_blocks", [])), 0) > 0 ? local.rules[count.index]["ipv6_cidr_blocks"] : null
   prefix_list_ids  = try(length(lookup(local.rules[count.index], "prefix_list_ids", [])), 0) > 0 ? local.rules[count.index]["prefix_list_ids"] : null
@@ -63,7 +64,7 @@ resource "aws_security_group_rule" "default" {
 }
 
 resource "aws_security_group_rule" "self" {
-  # We use "== true" here because you cannot use `null` as a conditional
+  # We use "== true" here because you cannot use `null` as a conditional, but null == true is OK
   count = local.rule_matrix_enabled && try(var.rule_matrix.self, null) == true ? local.rule_matrix_rule_count : 0
 
   security_group_id = local.security_group_id
@@ -71,7 +72,7 @@ resource "aws_security_group_rule" "self" {
   from_port         = var.rule_matrix.rules[count.index].from_port
   to_port           = var.rule_matrix.rules[count.index].to_port
   protocol          = var.rule_matrix.rules[count.index].protocol
-  description       = try(var.rule_matrix.rules[count.index].description, "Managed by Terraform")
+  description       = try(var.rule_matrix.rules[count.index].description, local.default_rule_description)
 
   self = var.rule_matrix.self
 }
@@ -86,7 +87,7 @@ resource "aws_security_group_rule" "sg" {
   from_port         = var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].from_port
   to_port           = var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].to_port
   protocol          = var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].protocol
-  description       = try(var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].description, "Managed by Terraform")
+  description       = try(var.rule_matrix.rules[count.index % local.rule_matrix_rule_count].description, local.default_rule_description)
 
   source_security_group_id = var.rule_matrix.source_security_group_ids[floor(count.index / local.rule_matrix_rule_count)]
 }
@@ -104,7 +105,7 @@ resource "aws_security_group_rule" "cidr" {
   from_port         = var.rule_matrix.rules[count.index].from_port
   to_port           = var.rule_matrix.rules[count.index].to_port
   protocol          = var.rule_matrix.rules[count.index].protocol
-  description       = try(var.rule_matrix.rules[count.index].description, "Managed by Terraform")
+  description       = try(var.rule_matrix.rules[count.index].description, local.default_rule_description)
 }
 
 
@@ -112,10 +113,12 @@ resource "aws_security_group_rule" "egress" {
   count = local.enabled && var.allow_all_egress ? 1 : 0
 
   security_group_id = local.security_group_id
+
+  # Copied from https://registry.terraform.io/providers/hashicorp/aws/3.46.0/docs/resources/security_group#example-usage
   type              = "egress"
   from_port         = 0
-  to_port           = 65535
-  protocol          = "all"
+  to_port           = 0
+  protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
   description       = "Allow all egress"

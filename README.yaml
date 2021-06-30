@@ -60,8 +60,11 @@ description: |-
 
 # How to use this module. Should be an easy example to copy and paste.
 usage: |-
+  This module is primarily for setting security group rules on a security group. You can provide the
+  ID of an existing security group to modify, or, by default, this module will create a new security
+  group and apply the given rules to it.
 
-  This module provides 2 ways to set security group rules rules. The `rules` input takes a list of
+  This module provides 2 ways to set security group rules. The `rules` input takes a list of
   rule maps. The maps are compatible with (have the same keys and accept the same values) the
   Terraform [aws_security_group_rule resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule).
   While some of the map keys are optional, Terraform requires that all maps in the list have exactly the same

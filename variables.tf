@@ -13,6 +13,16 @@ variable "security_group_name" {
   EOT
 }
 
+variable "security_group_description" {
+  type        = string
+  default     = "Managed by Terraform"
+  description = <<-EOT
+    The description to assign to the created Security Group.
+    Warning: Changing the description causes the security group to be replaced, which requires everything
+    associated with the security group to be replaced, which can be very disruptive.
+    EOT
+}
+
 variable "create_security_group" {
   type        = bool
   default     = true
@@ -24,10 +34,9 @@ variable "existing_security_group_id" {
   default     = ""
   description = <<-EOT
     The ID of an existing Security Group to which Security Group rules will be assigned.
-    Required if `security_group_enabled` is `false`, ignored otherwise.
+    Required if `create_security_group` is `false`, ignored otherwise.
   EOT
 }
-
 
 variable "create_before_destroy" {
   type        = bool
@@ -36,12 +45,6 @@ variable "create_before_destroy" {
     Set `true` to enable terraform `create_before_destroy` behavior.
     Note that changing this value will change the security group name and cause the security group to be replaced.
     EOT
-}
-
-variable "description" {
-  type        = string
-  default     = "Managed by Terraform"
-  description = "The Security Group description."
 }
 
 variable "rules" {
