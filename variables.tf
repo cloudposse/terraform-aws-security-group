@@ -29,7 +29,7 @@ variable "create_security_group" {
   description = "Set `true` to create a new security group. If false, `existing_security_group_id` must be provided."
 }
 
-variable "existing_security_group_id" {
+variable "target_security_group_id" {
   type        = string
   default     = ""
   description = <<-EOT

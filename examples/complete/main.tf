@@ -69,10 +69,10 @@ resource "aws_security_group" "existing" {
 module "existing_security_group" {
   source = "../.."
 
-  vpc_id                     = module.vpc.vpc_id
-  existing_security_group_id = aws_security_group.existing.id
-  rules                      = var.rules
-  create_security_group      = false
+  vpc_id                   = module.vpc.vpc_id
+  target_security_group_id = aws_security_group.existing.id
+  rules                    = var.rules
+  create_security_group    = false
 
   context = module.this.context
 }
@@ -82,9 +82,9 @@ module "existing_security_group" {
 module "disabled_security_group" {
   source = "../.."
 
-  vpc_id                     = module.vpc.vpc_id
-  existing_security_group_id = aws_security_group.existing.id
-  rules                      = var.rules
+  vpc_id                   = module.vpc.vpc_id
+  target_security_group_id = aws_security_group.existing.id
+  rules                    = var.rules
 
   context = module.this.context
   enabled = false

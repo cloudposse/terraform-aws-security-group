@@ -1,5 +1,5 @@
 locals {
-  enabled = module.this.enabled
+  enabled                  = module.this.enabled
   default_rule_description = "Managed by Terraform"
   # Because Terraform formatting for `not` (!) changes between versions 0.13 and 0.14, use == false instead
   create_security_group = local.enabled && var.create_security_group
@@ -9,7 +9,7 @@ locals {
   ) : null
   security_group_id = local.enabled ? (
     # Use coalesce() here to hack an error message into the output
-    var.create_security_group ? local.created_security_group.id : coalesce(var.existing_security_group_id,
+    var.create_security_group ? local.created_security_group.id : coalesce(var.target_security_group_id,
     "`create_security_group` is false, but no ID was supplied ")
   ) : null
 
@@ -115,11 +115,11 @@ resource "aws_security_group_rule" "egress" {
   security_group_id = local.security_group_id
 
   # Copied from https://registry.terraform.io/providers/hashicorp/aws/3.46.0/docs/resources/security_group#example-usage
-  type              = "egress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  description       = "Allow all egress"
+  type             = "egress"
+  from_port        = 0
+  to_port          = 0
+  protocol         = "-1"
+  cidr_blocks      = ["0.0.0.0/0"]
+  ipv6_cidr_blocks = ["::/0"]
+  description      = "Allow all egress"
 }
