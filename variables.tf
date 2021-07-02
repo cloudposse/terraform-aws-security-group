@@ -1,16 +1,26 @@
-variable "vpc_id" {
+variable "create_security_group" {
+  type        = bool
+  default     = true
+  description = "Set `true` to create a new security group. If false, `target_security_group_id` must be provided."
+}
+
+variable "target_security_group_id" {
   type        = string
-  description = "The VPC ID where Security Group will be created."
+  default     = ""
+  description = <<-EOT
+    The ID of an existing Security Group to which Security Group rules will be assigned.
+    Required if `create_security_group` is `false`, ignored otherwise.
+    EOT
 }
 
 variable "security_group_name" {
   type        = string
   default     = ""
   description = <<-EOT
-    The name to assign to the security group. Must be unique within the account.
+    The name to assign to the security group. Must be unique within the VPC.
     If not provided, will be derived from the `null-label.context` passed in.
     If `create_before_destroy` is true, will be used as a name prefix.
-  EOT
+    EOT
 }
 
 variable "security_group_description" {
@@ -23,39 +33,15 @@ variable "security_group_description" {
     EOT
 }
 
-variable "create_security_group" {
-  type        = bool
-  default     = true
-  description = "Set `true` to create a new security group. If false, `existing_security_group_id` must be provided."
-}
-
-variable "target_security_group_id" {
-  type        = string
-  default     = ""
-  description = <<-EOT
-    The ID of an existing Security Group to which Security Group rules will be assigned.
-    Required if `create_security_group` is `false`, ignored otherwise.
-  EOT
-}
-
 variable "create_before_destroy" {
   type        = bool
   default     = false
   description = <<-EOT
-    Set `true` to enable terraform `create_before_destroy` behavior.
-    Note that changing this value will change the security group name and cause the security group to be replaced.
+    Set `true` to enable terraform `create_before_destroy` behavior on the created security group.
+    We recommend setting this `true` on new security groups, but default it to `false` because `true`
+    will cause existing security groups to be replaced.
+    Note that changing this value will also cause the security group to be replaced.
     EOT
-}
-
-variable "rules" {
-  type        = list(any)
-  default     = []
-  description = <<-EOT
-    A list of maps of Security Group rules.
-    The keys and values of the maps are fully compatible with the `aws_security_group_rule` resource, except
-    for `security_group_id` which will be ignored.
-    To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule .
-  EOT
 }
 
 variable "allow_all_egress" {
@@ -67,9 +53,20 @@ variable "allow_all_egress" {
     EOT
 }
 
+variable "rules" {
+  type        = list(any)
+  default     = []
+  description = <<-EOT
+    A list of maps of Security Group rules.
+    The keys and values of the maps are fully compatible with the `aws_security_group_rule` resource, except
+    for `security_group_id` which will be ignored.
+    To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule .
+    EOT
+}
+
 variable "rule_matrix" {
   # rule_matrix is independent of the `rules` input.
-  # Only the rules specified in the `rule_matrix` object are applied to the subjects.
+  # Only the rules specified in the `rule_matrix` object are applied to the subjects specified in `rule_matrix`.
   #  Schema:
   #  {
   #    # these top level lists define all the subjects to which rule_matrix rules will be applied
@@ -81,16 +78,56 @@ variable "rule_matrix" {
   #
   #    # each rule in the rules list will be applied to every subject defined above
   #    rules = [{
-  #      type = "egress"
-  #      from_port = 0
-  #      to_port = 65535
-  #      protocol = "all"
-  #      description = "Allow full egress"
+  #      type = "ingress"
+  #      from_port = 433
+  #      to_port = 433
+  #      protocol = "tcp"
+  #      description = "Allow HTTPS ingress"
   #    }]
 
   type        = any
-  default     = { rules = [] }
+  default     = []
   description = <<-EOT
     A convenient way to apply the same set of rules to a set of subjects. See README for details.
     EOT
 }
+
+variable "security_group_create_timeout" {
+  type        = string
+  default     = "10m"
+  description = "How long to wait for the security group to be created."
+}
+
+variable "security_group_delete_timeout" {
+  type        = string
+  default     = "15m"
+  description = <<-EOT
+    How long to retry on `DependencyViolation` errors during security group deletion from
+    lingering ENIs left by certain AWS services such as Elastic Load Balancing.
+    EOT
+}
+
+variable "revoke_rules_on_delete" {
+  type        = bool
+  default     = false
+  description = <<-EOT
+    Instruct Terraform to revoke all of the Security Group's attached ingress and egress rules before deleting
+    the security group itself. This is normally not needed.
+    EOT
+}
+
+variable "vpc_id" {
+  type        = string
+  description = "The ID of the VPC where the Security Group will be created."
+}
+
+variable "inline_rules_enabled" {
+  type        = bool
+  default     = false
+  description = <<-EOT
+    NOT RECOMMENDED. Create rules "inline" instead of as separate `aws_security_group_rule` resources.
+    See [#20046](https://github.com/hashicorp/terraform-provider-aws/issues/20046) for one of several issues with inline rules.
+    See [this post](https://github.com/hashicorp/terraform-provider-aws/pull/9032#issuecomment-639545250) for details on the difference between inline rules and rule resources.
+    EOT
+}
+
