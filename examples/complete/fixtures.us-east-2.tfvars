@@ -10,6 +10,7 @@ name = "sg"
 
 rules = [
   {
+    key         = null # "ssh all"
     type        = "ingress"
     from_port   = 22
     to_port     = 22
@@ -18,6 +19,7 @@ rules = [
     description = "SSH wide open"
   },
   {
+    key         = "https all"
     type        = "ingress"
     from_port   = 443
     to_port     = 443

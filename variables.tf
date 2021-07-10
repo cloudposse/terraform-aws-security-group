@@ -59,7 +59,7 @@ variable "rules" {
   description = <<-EOT
     A list of maps of Security Group rules.
     The keys and values of the maps are fully compatible with the `aws_security_group_rule` resource, except
-    for `security_group_id` which will be ignored.
+    for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique.
     To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule .
     EOT
 }
@@ -70,6 +70,7 @@ variable "rule_matrix" {
   #  Schema:
   #  {
   #    # these top level lists define all the subjects to which rule_matrix rules will be applied
+  #    key = unique key (for stability from plan to plan)
   #    source_security_group_ids = list of source security group IDs to apply all rules to
   #    cidr_blocks = list of ipv4 CIDR blocks to apply all rules to
   #    ipv6_cidr_blocks = list of ipv6 CIDR blocks to apply all rules to
@@ -78,6 +79,7 @@ variable "rule_matrix" {
   #
   #    # each rule in the rules list will be applied to every subject defined above
   #    rules = [{
+  #      key = "unique key"
   #      type = "ingress"
   #      from_port = 433
   #      to_port = 433

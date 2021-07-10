@@ -14,8 +14,8 @@ module "vpc" {
 }
 
 resource "random_integer" "coin" {
-  max = 1
-  min = 0
+  max = 2
+  min = 1
 }
 
 # Create one new security group
@@ -23,15 +23,16 @@ resource "random_integer" "coin" {
 module "new_security_group" {
   source = "../.."
 
-  allow_all_egress = true
+  allow_all_egress     = true
+  inline_rules_enabled = var.inline_rules_enabled
 
   rule_matrix = [{
+    key = "stable"
     # Allow ingress on ports 22 and 80 from created security group, existing security group, and CIDR "10.0.0.0/8"
-
     # The dynamic value for source_security_group_ids breaks Terraform 0.13 but should work in 0.14 or later
     source_security_group_ids = [aws_security_group.existing.id]
     # Either dynamic value for CIDRs breaks Terraform 0.13 but should work in 0.14 or later
-    cidr_blocks      = random_integer.coin.result > 0 ? ["10.0.0.0/16"] : ["10.0.0.0/24"]
+    cidr_blocks      = random_integer.coin.result > 1 ? ["10.0.0.0/16"] : ["10.0.0.0/24"]
     ipv6_cidr_blocks = [module.vpc.ipv6_cidr_block]
     prefix_list_ids  = []
 
@@ -41,6 +42,7 @@ module "new_security_group" {
     self = var.rule_matrix_self
     rules = [
       {
+        key         = "ssh"
         type        = "ingress"
         from_port   = 22
         to_port     = 22
@@ -48,6 +50,7 @@ module "new_security_group" {
         description = "Allow SSH access"
       },
       {
+        # key = "http"
         type        = "ingress"
         from_port   = 80
         to_port     = 80
@@ -59,6 +62,7 @@ module "new_security_group" {
 
   rules = [
     {
+      key                      = "https-cidr"
       type                     = "ingress"
       from_port                = 443
       to_port                  = 443
@@ -70,6 +74,7 @@ module "new_security_group" {
       self                     = null
     },
     {
+      key                      = null # "https-sg"
       type                     = "ingress"
       from_port                = 443
       to_port                  = 443

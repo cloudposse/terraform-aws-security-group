@@ -100,7 +100,10 @@ group and apply the given rules to it.
 ##### `rules` input
 This module provides 2 ways to set security group rules. The `rules` input takes a list of
 rule maps. The maps are compatible with (have the same keys and accept the same values) as the
-Terraform [aws_security_group_rule resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule).
+Terraform [aws_security_group_rule resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule),
+except that `security_group_id` will be ignored, and the map can include an optional "key" which, if provided, must have a unique value.
+The "key" value, if provided, must be something Terraform can know the value of at "apply" time, and is used to keep the
+rule from being affected by its place in the list. See ["Unexplained changes..."](#unexpected-changes-during-plan-and-apply) below for more details.
 While some of the map keys are optional, Terraform requires that all of the maps in a single list have exactly the same set of keys.
 See [WARNINGS and error messages](#warnings-and-error-messages) below for details.
 
@@ -108,17 +111,19 @@ See [WARNINGS and error messages](#warnings-and-error-messages) below for detail
 The other way to set rules is via the `rule_matrix` input. This splits the keys of the `aws_security_group_rule` resource
 into to sets: one set defines the rule and descripition, the other set defines the subjects of the rule. As with
 `rules` and explained in the previous paragraph, all elements of the list must have all the same keys. This also holds
-for all the elements of the `rules_matrix.rules` list.
+for all the elements of the `rules_matrix.rules` list. Again, optional "key" values can provide stability, but
+cannot contain derived values.
 
 Any map key that takes a list value must either be absent from all lists or contain lists in all lists.
 Use an empty list rather than `null` to indicate "no value". Passing in `null` instead of a list
-may cause Terraform v0.13 to crash and may cause other errors in later Terraform versions.
+may cause Terraform to crash or omit confusing error messages (e.g. "number is required").
 
-The schema for the `rule matrix` is:
+The schema for `rule_matrix` is:
 
 ```hcl
 {
   # these top level lists define all the subjects to which rule_matrix rules will be applied
+  key                       = an optional unique key to keep these rules from being affected when other rules change
   source_security_group_ids = list of source security group IDs to apply all rules to
   cidr_blocks               = list of ipv4 CIDR blocks to apply all rules to
   ipv6_cidr_blocks          = list of ipv6 CIDR blocks to apply all rules to
@@ -128,6 +133,7 @@ The schema for the `rule matrix` is:
 
   # each rule in the rules list will be applied to every subject defined above
   rules = [{
+    key       = an optional unique key to keep this rule from being affected when other rules change
     type      = type of rule, either "ingress" or "egress"
     from_port = start range of protocol port
     to_port   = end range of protocol port, max is 65535
@@ -151,8 +157,13 @@ The way Terraform works and the way this module is implemented causes security g
 to be dependent on their place in the input lists. If a rule is deleted and the other rules therefore move
 closer to the start of the list, those rules will be deleted and recreated. This should have no significant
 operational impact, but it can make a small change look like a big one when viewing the output of
-Terraform plan. After careful consideration, we have decided that this is preferable to the
-impositions and limitations that would come from a solution that avoids it.
+Terraform plan.
+
+You can avoid this for the most part by providing the optional keys. Rules with keys will not be
+changed if their keys do not change and the rules themselves do not change, except in the case of
+`rule_matrix`, where the rules are still dependent on the order of the security groups in
+`source_security_group_ids`. You can avoid this by using `rules` instead of `rule_matrix` when you have
+more than one security group in the list.
 
 ##### WARNINGS and error messages
 
@@ -234,6 +245,7 @@ module "sg" {
 
   rules = [
     {
+      key         = "ssh"
       type        = "ingress"
       from_port   = 22
       to_port     = 22
@@ -243,6 +255,7 @@ module "sg" {
       description = "Allow SSH from anywhere"
     },
     {
+      key         = "HTTP"
       type        = "ingress"
       from_port   = 80
       to_port     = 80
@@ -276,6 +289,7 @@ module "sg_mysql" {
       prefix_list_ids = [var.mysql_client_prefix_list_id]
       rules = [
         {
+          key         = "mysql"
           type        = "ingress"
           from_port   = 3306
           to_port     = 3306
@@ -320,7 +334,7 @@ Available targets:
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.13.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.14.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 3.0 |
 
 ## Providers
@@ -341,7 +355,7 @@ Available targets:
 |------|------|
 | [aws_security_group.cbd](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_security_group.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
-| [aws_security_group_rule.discrete](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
+| [aws_security_group_rule.keyed](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
 
 ## Inputs
 
@@ -366,7 +380,7 @@ Available targets:
 | <a name="input_regex_replace_chars"></a> [regex\_replace\_chars](#input\_regex\_replace\_chars) | Regex to replace chars with empty string in `namespace`, `environment`, `stage` and `name`.<br>If not set, `"/[^a-zA-Z0-9-]/"` is used to remove all characters other than hyphens, letters and digits. | `string` | `null` | no |
 | <a name="input_revoke_rules_on_delete"></a> [revoke\_rules\_on\_delete](#input\_revoke\_rules\_on\_delete) | Instruct Terraform to revoke all of the Security Group's attached ingress and egress rules before deleting<br>the security group itself. This is normally not needed. | `bool` | `false` | no |
 | <a name="input_rule_matrix"></a> [rule\_matrix](#input\_rule\_matrix) | A convenient way to apply the same set of rules to a set of subjects. See README for details. | `any` | `[]` | no |
-| <a name="input_rules"></a> [rules](#input\_rules) | A list of maps of Security Group rules.<br>The keys and values of the maps are fully compatible with the `aws_security_group_rule` resource, except<br>for `security_group_id` which will be ignored.<br>To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule . | `list(any)` | `[]` | no |
+| <a name="input_rules"></a> [rules](#input\_rules) | A list of maps of Security Group rules.<br>The keys and values of the maps are fully compatible with the `aws_security_group_rule` resource, except<br>for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique.<br>To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule . | `list(any)` | `[]` | no |
 | <a name="input_security_group_create_timeout"></a> [security\_group\_create\_timeout](#input\_security\_group\_create\_timeout) | How long to wait for the security group to be created. | `string` | `"10m"` | no |
 | <a name="input_security_group_delete_timeout"></a> [security\_group\_delete\_timeout](#input\_security\_group\_delete\_timeout) | How long to retry on `DependencyViolation` errors during security group deletion from<br>lingering ENIs left by certain AWS services such as Elastic Load Balancing. | `string` | `"15m"` | no |
 | <a name="input_security_group_description"></a> [security\_group\_description](#input\_security\_group\_description) | The description to assign to the created Security Group.<br>Warning: Changing the description causes the security group to be replaced, which requires everything<br>associated with the security group to be replaced, which can be very disruptive. | `string` | `"Managed by Terraform"` | no |
@@ -383,6 +397,7 @@ Available targets:
 | <a name="output_arn"></a> [arn](#output\_arn) | The created Security Group ARN (null if using existing security group) |
 | <a name="output_id"></a> [id](#output\_id) | The created or target Security Group ID |
 | <a name="output_name"></a> [name](#output\_name) | The created Security Group Name (null if using existing security group) |
+| <a name="output_rules_terraform_ids"></a> [rules\_terraform\_ids](#output\_rules\_terraform\_ids) | List of Terraform IDs of created `security_group_rule` resources, primarily provided to enable `depends_on` |
 <!-- markdownlint-restore -->
 
 

@@ -6,7 +6,8 @@ locals {
   # Note: we have to use [] instead of null for unset lists due to
   # https://github.com/hashicorp/terraform/issues/28137
   # which was not fixed until Terraform 1.0.0
-  norm_rules = local.enabled ? [for rule in var.rules : {
+  norm_rules = local.enabled && var.rules != null ? [for i, rule in var.rules : {
+    key         = coalesce(lookup(rule, "key", null), "_n[${i}]")
     type        = rule.type
     from_port   = rule.from_port
     to_port     = rule.to_port
@@ -25,7 +26,8 @@ locals {
   }] : []
 
   # in rule_matrix and inline rules, a single rule can have a list of security groups
-  norm_matrix = local.enabled ? concat(concat([[]], [for subject in var.rule_matrix : [for rule in subject.rules : {
+  norm_matrix = local.enabled && var.rule_matrix != null ? concat(concat([[]], [for i, subject in var.rule_matrix : [for j, rule in subject.rules : {
+    key         = "${coalesce(lookup(subject, "key", null), "_m[${i}]")}#${coalesce(lookup(rule, "key", null), "[${j}]")}"
     type        = rule.type
     from_port   = rule.from_port
     to_port     = rule.to_port
@@ -48,6 +50,7 @@ locals {
   }]])...) : []
 
   allow_egress_rule = {
+    key                      = "_allow_all_egress_"
     type                     = "egress"
     from_port                = 0
     to_port                  = 0 # [sic] from and to port ignored when protocol is "-1", warning if not zero
@@ -61,7 +64,8 @@ locals {
     source_security_group_id = null
   }
 
-  all_inline_rules = concat(local.norm_rules, local.norm_matrix, local.allow_all_egress ? [local.allow_egress_rule] : [])
+  all_inline_rules = concat(local.norm_rules, local.norm_matrix, local.allow_all_egress ? [
+  local.allow_egress_rule] : [])
 
   # For inline rules, the rules have to be separated into ingress and egress
   all_ingress_rules = local.inline ? [for r in local.all_inline_rules : r if r.type == "ingress"] : []
@@ -73,6 +77,7 @@ locals {
   # on a computed input value, we must stick to counting things.
 
   self_rules = local.inline ? [] : [for rule in local.norm_matrix : {
+    key         = "${rule.key}#self"
     type        = rule.type
     from_port   = rule.from_port
     to_port     = rule.to_port
@@ -92,6 +97,7 @@ locals {
   } if rule.self != null]
 
   other_rules = local.inline ? [] : [for rule in local.norm_matrix : {
+    key         = "${rule.key}#cidr"
     type        = rule.type
     from_port   = rule.from_port
     to_port     = rule.to_port
@@ -110,6 +116,7 @@ locals {
 
   # First, collect all the rules with lists of security groups
   sg_rules_lists = local.inline ? [] : [for rule in local.all_inline_rules : {
+    key         = "${rule.key}#sg"
     type        = rule.type
     from_port   = rule.from_port
     to_port     = rule.to_port
@@ -124,7 +131,8 @@ locals {
   } if length(rule.security_groups) > 0]
 
   # Now we have to explode the lists into individual rules
-  sg_exploded_rules = flatten([for rule in local.sg_rules_lists : [for sg in rule.security_groups : {
+  sg_exploded_rules = flatten([for rule in local.sg_rules_lists : [for i, sg in rule.security_groups : {
+    key         = "${rule.key}#${i}"
     type        = rule.type
     from_port   = rule.from_port
     to_port     = rule.to_port
@@ -140,7 +148,10 @@ locals {
     source_security_group_id = sg
   }]])
 
-  resource_rules = concat(local.norm_rules, local.self_rules, local.sg_exploded_rules, local.other_rules)
+  all_resource_rules   = concat(local.norm_rules, local.self_rules, local.sg_exploded_rules, local.other_rules)
+  keyed_resource_rules = { for r in local.all_resource_rules : r.key => r }
+  #  named_resource_rules   = { for r in local.all_resource_rules : r.key => r if r.key != null && r.key != ""}
+  #  unnamed_resource_rules = [ for r in local.all_resource_rules : r if r.key == null || r.key == "" ]
 }
 
 

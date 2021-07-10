@@ -67,7 +67,10 @@ usage: |-
   ##### `rules` input
   This module provides 2 ways to set security group rules. The `rules` input takes a list of
   rule maps. The maps are compatible with (have the same keys and accept the same values) as the
-  Terraform [aws_security_group_rule resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule).
+  Terraform [aws_security_group_rule resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule),
+  except that `security_group_id` will be ignored, and the map can include an optional "key" which, if provided, must have a unique value.
+  The "key" value, if provided, must be something Terraform can know the value of at "apply" time, and is used to keep the
+  rule from being affected by its place in the list. See ["Unexplained changes..."](#unexpected-changes-during-plan-and-apply) below for more details.
   While some of the map keys are optional, Terraform requires that all of the maps in a single list have exactly the same set of keys.
   See [WARNINGS and error messages](#warnings-and-error-messages) below for details.
 
@@ -75,17 +78,19 @@ usage: |-
   The other way to set rules is via the `rule_matrix` input. This splits the keys of the `aws_security_group_rule` resource
   into to sets: one set defines the rule and descripition, the other set defines the subjects of the rule. As with
   `rules` and explained in the previous paragraph, all elements of the list must have all the same keys. This also holds
-  for all the elements of the `rules_matrix.rules` list.
+  for all the elements of the `rules_matrix.rules` list. Again, optional "key" values can provide stability, but
+  cannot contain derived values.
 
   Any map key that takes a list value must either be absent from all lists or contain lists in all lists.
   Use an empty list rather than `null` to indicate "no value". Passing in `null` instead of a list
-  may cause Terraform v0.13 to crash and may cause other errors in later Terraform versions.
+  may cause Terraform to crash or omit confusing error messages (e.g. "number is required").
 
-  The schema for the `rule matrix` is:
+  The schema for `rule_matrix` is:
 
   ```hcl
   {
     # these top level lists define all the subjects to which rule_matrix rules will be applied
+    key                       = an optional unique key to keep these rules from being affected when other rules change
     source_security_group_ids = list of source security group IDs to apply all rules to
     cidr_blocks               = list of ipv4 CIDR blocks to apply all rules to
     ipv6_cidr_blocks          = list of ipv6 CIDR blocks to apply all rules to
@@ -95,6 +100,7 @@ usage: |-
 
     # each rule in the rules list will be applied to every subject defined above
     rules = [{
+      key       = an optional unique key to keep this rule from being affected when other rules change
       type      = type of rule, either "ingress" or "egress"
       from_port = start range of protocol port
       to_port   = end range of protocol port, max is 65535
@@ -118,8 +124,13 @@ usage: |-
   to be dependent on their place in the input lists. If a rule is deleted and the other rules therefore move
   closer to the start of the list, those rules will be deleted and recreated. This should have no significant
   operational impact, but it can make a small change look like a big one when viewing the output of
-  Terraform plan. After careful consideration, we have decided that this is preferable to the
-  impositions and limitations that would come from a solution that avoids it.
+  Terraform plan.
+
+  You can avoid this for the most part by providing the optional keys. Rules with keys will not be
+  changed if their keys do not change and the rules themselves do not change, except in the case of
+  `rule_matrix`, where the rules are still dependent on the order of the security groups in
+  `source_security_group_ids`. You can avoid this by using `rules` instead of `rule_matrix` when you have
+  more than one security group in the list.
 
   ##### WARNINGS and error messages
 
@@ -201,6 +212,7 @@ usage: |-
 
     rules = [
       {
+        key         = "ssh"
         type        = "ingress"
         from_port   = 22
         to_port     = 22
@@ -210,6 +222,7 @@ usage: |-
         description = "Allow SSH from anywhere"
       },
       {
+        key         = "HTTP"
         type        = "ingress"
         from_port   = 80
         to_port     = 80
@@ -243,6 +256,7 @@ usage: |-
         prefix_list_ids = [var.mysql_client_prefix_list_id]
         rules = [
           {
+            key         = "mysql"
             type        = "ingress"
             from_port   = 3306
             to_port     = 3306
