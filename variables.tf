@@ -9,6 +9,8 @@ variable "target_security_group_id" {
   default     = ""
   description = <<-EOT
     The ID of an existing Security Group to which Security Group rules will be assigned.
+    The Security Group's description will not be changed.
+    Not compatible with `inline_rules_enabled` or `revoke_rules_on_delete`.
     Required if `create_security_group` is `false`, ignored otherwise.
     EOT
 }
@@ -28,8 +30,7 @@ variable "security_group_description" {
   default     = "Managed by Terraform"
   description = <<-EOT
     The description to assign to the created Security Group.
-    Warning: Changing the description causes the security group to be replaced, which requires everything
-    associated with the security group to be replaced, which can be very disruptive.
+    Warning: Changing the description causes the security group to be replaced.
     EOT
 }
 
@@ -40,7 +41,7 @@ variable "create_before_destroy" {
     Set `true` to enable terraform `create_before_destroy` behavior on the created security group.
     We recommend setting this `true` on new security groups, but default it to `false` because `true`
     will cause existing security groups to be replaced.
-    Note that changing this value will also cause the security group to be replaced.
+    Note that changing this value will always cause the security group to be replaced.
     EOT
 }
 
@@ -54,12 +55,15 @@ variable "allow_all_egress" {
 }
 
 variable "rules" {
-  type        = list(any)
-  default     = []
+  type        = any
+  default     = {}
   description = <<-EOT
-    A list of maps of Security Group rules.
-    The keys and values of the maps are fully compatible with the `aws_security_group_rule` resource, except
-    for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique.
+    An object (like a map) of lists of Security Group rule objects. All elements of a list must be exactly the same
+    type, so this input accepts an object with keys (attributes) whose values are lists so you can separate different
+    types into different lists and still pass them into one input. Keys must known at "plan" time.
+    The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,
+    except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique
+    and known at "plan" time.
     To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule .
     EOT
 }

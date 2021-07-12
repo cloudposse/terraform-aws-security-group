@@ -8,7 +8,7 @@ stage = "test"
 
 name = "sg"
 
-rules = [
+rules = { default = [
   {
     key         = null # "ssh all"
     type        = "ingress"
@@ -27,4 +27,15 @@ rules = [
     cidr_blocks = ["0.0.0.0/0"]
     description = "HTTPS wide open"
   }
-]
+  ],
+  ipv6 = [
+    {
+      type             = "ingress"
+      from_port        = 22
+      to_port          = 22
+      protocol         = "tcp"
+      ipv6_cidr_blocks = ["::/0"]
+      description      = "SSH wide open"
+    }
+
+] }

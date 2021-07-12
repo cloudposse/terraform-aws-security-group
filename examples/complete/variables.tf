@@ -3,7 +3,7 @@ variable "region" {
 }
 
 variable "rules" {
-  type = list(any)
+  type = any
 }
 
 variable "rule_matrix_self" {

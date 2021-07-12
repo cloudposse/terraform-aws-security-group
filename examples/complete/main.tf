@@ -60,7 +60,7 @@ module "new_security_group" {
     ]
   }]
 
-  rules = [
+  rules = merge(var.rules, { new-cidr = [
     {
       key                      = "https-cidr"
       type                     = "ingress"
@@ -72,20 +72,17 @@ module "new_security_group" {
       source_security_group_id = null
       description              = "Discrete HTTPS ingress by CIDR"
       self                     = null
-    },
-    {
-      key                      = null # "https-sg"
+    }],
+    new-sg = [{
       type                     = "ingress"
       from_port                = 443
       to_port                  = 443
       protocol                 = "tcp"
-      cidr_blocks              = []
-      ipv6_cidr_blocks         = []
       source_security_group_id = aws_security_group.existing.id
       description              = "Discrete HTTPS ingress for special SG"
       self                     = null
-    },
-  ]
+    }],
+  })
 
 
   vpc_id = module.vpc.vpc_id

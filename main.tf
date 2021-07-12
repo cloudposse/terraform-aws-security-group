@@ -155,4 +155,8 @@ resource "aws_security_group_rule" "keyed" {
   source_security_group_id = each.value.source_security_group_id
 
   depends_on = [aws_security_group.cbd, aws_security_group.default]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
