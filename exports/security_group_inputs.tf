@@ -30,7 +30,7 @@ variable "associated_security_group_ids" {
   default     = []
   description = <<-EOT
     A list of IDs of Security Groups to associate the created resource with, in addition to the created security group.
-    These security groups will not be modified and must provide all the required access.
+    These security groups will not be modified and, if `create_security_group` is `false`, must provide all the required access.
   EOT
 }
 

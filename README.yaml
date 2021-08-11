@@ -33,7 +33,7 @@ github_repo: cloudposse/terraform-aws-security-group
 badges:
   - name: "Latest Release"
     image: "https://img.shields.io/github/release/cloudposse/terraform-aws-security-group.svg"
-    url: "https://github.com/cloudposse/terraform-aws-security-group/releases/latest"
+    url: "https://github.com/cloudposse/terraform-aws-security-group"
   - name: "Slack Community"
     image: "https://slack.cloudposse.com/badge.svg"
     url: "https://slack.cloudposse.com"

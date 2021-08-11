@@ -30,7 +30,7 @@ module "new_security_group" {
     key = "stable"
     # Allow ingress on ports 22 and 80 from created security group, existing security group, and CIDR "10.0.0.0/8"
     # The dynamic value for source_security_group_ids breaks Terraform 0.13 but should work in 0.14 or later
-    source_security_group_ids = [aws_security_group.existing.id]
+    source_security_group_ids = [aws_security_group.target.id]
     # Either dynamic value for CIDRs breaks Terraform 0.13 but should work in 0.14 or later
     cidr_blocks      = random_integer.coin.result > 1 ? ["10.0.0.0/16"] : ["10.0.0.0/24"]
     ipv6_cidr_blocks = [module.vpc.ipv6_cidr_block]
@@ -74,11 +74,12 @@ module "new_security_group" {
       self                     = null
     }],
     new-sg = [{
+      # no key provided
       type                     = "ingress"
       from_port                = 443
       to_port                  = 443
       protocol                 = "tcp"
-      source_security_group_id = aws_security_group.existing.id
+      source_security_group_id = aws_security_group.target.id
       description              = "Discrete HTTPS ingress for special SG"
       self                     = null
     }],
@@ -96,19 +97,19 @@ module "new_security_group" {
 
 # Create rules for pre-created security group
 
-resource "aws_security_group" "existing" {
+resource "aws_security_group" "target" {
   name_prefix = format("%s-%s-", module.this.id, "existing")
   vpc_id      = module.vpc.vpc_id
   tags        = module.this.tags
 }
 
-module "existing_security_group" {
+module "target_security_group" {
   source = "../.."
 
-  allow_all_egress         = true
-  target_security_group_id = aws_security_group.existing.id
+  allow_all_egress = true
+  # create_security_group    = false
+  target_security_group_id = [aws_security_group.target.id]
   rules                    = var.rules
-  create_security_group    = false
 
   vpc_id = module.vpc.vpc_id
 
@@ -121,7 +122,7 @@ module "disabled_security_group" {
   source = "../.."
 
   vpc_id                   = module.vpc.vpc_id
-  target_security_group_id = aws_security_group.existing.id
+  target_security_group_id = [aws_security_group.target.id]
   rules                    = var.rules
 
   context = module.this.context

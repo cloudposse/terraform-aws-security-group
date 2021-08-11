@@ -30,6 +30,7 @@ rules = { default = [
   ],
   ipv6 = [
     {
+      # no key provided
       type             = "ingress"
       from_port        = 22
       to_port          = 22

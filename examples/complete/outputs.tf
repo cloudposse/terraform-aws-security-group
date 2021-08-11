@@ -13,19 +13,24 @@ output "created_sg_name" {
   value       = module.new_security_group.name
 }
 
-output "existing_sg_id" {
-  description = "The existing Security Group ID"
-  value       = module.existing_security_group.id
+output "test_created_sg_id" {
+  description = "The security group created by the test to use as \"target\" security group"
+  value       = aws_security_group.target.id
 }
 
-output "existing_sg_arn" {
-  description = "The existing Security Group ARN"
-  value       = module.existing_security_group.arn
+output "target_sg_id" {
+  description = "The target Security Group ID"
+  value       = module.target_security_group.id
 }
 
-output "existing_sg_name" {
-  description = "The existing Security Group Name"
-  value       = module.existing_security_group.name
+output "target_sg_arn" {
+  description = "The target Security Group ARN"
+  value       = module.target_security_group.arn
+}
+
+output "target_sg_name" {
+  description = "The target Security Group Name"
+  value       = module.target_security_group.name
 }
 
 output "disabled_sg_id" {

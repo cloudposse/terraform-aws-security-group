@@ -6,7 +6,7 @@ locals {
 
   default_rule_description = "Managed by Terraform"
 
-  create_security_group = local.enabled && var.create_security_group
+  create_security_group = local.enabled && length(var.target_security_group_id) == 0
 
   created_security_group = local.create_security_group ? (
     var.create_before_destroy ? aws_security_group.cbd[0] : aws_security_group.default[0]
@@ -14,8 +14,8 @@ locals {
 
   security_group_id = local.enabled ? (
     # Use coalesce() here to hack an error message into the output
-    var.create_security_group ? local.created_security_group.id : coalesce(var.target_security_group_id,
-    "`create_security_group` is false, but no security group ID was supplied ")
+    local.create_security_group ? local.created_security_group.id : coalesce(var.target_security_group_id[0],
+    "var.target_security_group_id contains null value. Omit value if you want this module to create a security group.")
   ) : null
 }
 
