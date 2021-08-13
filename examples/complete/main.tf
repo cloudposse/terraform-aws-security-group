@@ -18,7 +18,7 @@ resource "random_integer" "coin" {
   min = 1
 }
 
-# Create one new security group
+# Create a new security group
 
 module "new_security_group" {
   source = "../.."
@@ -36,7 +36,7 @@ module "new_security_group" {
     ipv6_cidr_blocks = [module.vpc.ipv6_cidr_block]
     prefix_list_ids  = []
 
-    # Making `self` derived should break count, as it legitimately makes
+    # Making `self` derived should break `count`, as it legitimately makes
     # the count impossible to predict
     # self  =  random_integer.coin.result > 0
     self = var.rule_matrix_self

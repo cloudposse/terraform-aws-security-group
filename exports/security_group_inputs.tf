@@ -67,16 +67,16 @@ variable "security_group_description" {
 # In general, if the resource supports changing security groups without deleting
 # the resource or anything it depends on, then default it to `true` and
 # note in the release notes and migration documents the option to
-# set it to false to preserve the existing security group.
+# set it to `false` to preserve the existing security group.
 # If the resource has to be deleted to change its security group,
 # then set the default to `false` and highlight the option to change
-# it to true in the release notes and migration documents.
+# it to `true` in the release notes and migration documents.
 #
 ################################
 variable "security_group_create_before_destroy" {
   type = bool
   #
-  # Pick true or false and the associated description
+  # Pick `true` or `false` and the associated description
   # Replace "the resource" with the name of the resouce, e.g. "EC2 instance"
   #
 
@@ -148,7 +148,7 @@ variable "allow_all_egress" {
   type        = bool
   default     = true
   description = <<-EOT
-    If `true`, the created security group will allow egress on all ports and protocols to all IP address.
+    If `true`, the created security group will allow egress on all ports and protocols to all IP addresses.
     If this is false and no egress rules are otherwise specified, then no egress will be allowed.
     EOT
 }

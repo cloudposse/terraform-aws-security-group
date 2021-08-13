@@ -10,7 +10,6 @@ variable "target_security_group_id" {
   validation {
     condition     = length(var.target_security_group_id) < 2
     error_message = "Only 1 security group can be targeted."
-
   }
 }
 
@@ -59,7 +58,7 @@ variable "rules" {
   description = <<-EOT
     An object (like a map) of lists of Security Group rule objects. All elements of a list must be exactly the same
     type, so this input accepts an object with keys (attributes) whose values are lists so you can separate different
-    types into different lists and still pass them into one input. Keys must known at "plan" time.
+    types into different lists and still pass them into one input. Keys must be known at "plan" time.
     The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,
     except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique
     and known at "plan" time.
