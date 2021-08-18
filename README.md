@@ -142,6 +142,8 @@ module "sg" {
   source = "cloudposse/security-group/aws"
   # Cloud Posse recommends pinning every module to a specific version
   # version = "x.x.x"
+  
+  vpc_id = module.vpc.vpc_id
 
   rules = [
     {
