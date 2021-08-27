@@ -279,6 +279,8 @@ usage: |-
     source = "cloudposse/security-group/aws"
     # Cloud Posse recommends pinning every module to a specific version
     # version = "x.x.x"
+    
+    vpc_id = module.vpc.vpc_id
 
     # Security Group names must be unique within a VPC.
     # This module follows Cloud Posse naming conventions and generates the name
