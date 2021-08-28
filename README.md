@@ -97,32 +97,39 @@ This module is primarily for setting security group rules on a security group. Y
 ID of an existing security group to modify, or, by default, this module will create a new security
 group and apply the given rules to it.
 
-##### `rules` input
-This module provides 2 ways to set security group rules. The primary way is via the `rules` input.
+##### `rules` and `rules_map` inputs
+This module provides 3 ways to set security group rules. You can use any or all of them at the same time.
 
-The `rules` input is a complex object due to the way Terraform handles objects and types.
+The easy way to specify rules is via the `rules` input. It takes a list of rules. (We will define
+a rule [a bit later](#definition-of-a-rule).) The problem is that a Terraform list must be composed
+of elements that are all the exact same type, and rules can be any of several
+different Terraform types. So to get around this restriction, the second
+way to specify rules is via the `rules_map` input, which is more complex.
 
 <details><summary>Why the input is so complex (click to reveal)</summary>
 
 - Terraform has 3 basic simple types: bool, number, string
 - Terraform then has 3 collections of simple types: list, map, and set
-- Terraform then has one complex type: object. However, this is not really a single
-type. It is a catch-all label for value that is itself a collection of attributes and values.
+- Terraform then has 2 structural types: object and tuple. However, these are not really single
+types. They are catch-all labels for values that are themselves combination of other values.
 (This will become a bit clearer after we define `maps` and contrast them with `objects`)
 
-The rule of the collection types is that the values in the collections must all be the exact same type.
+One [rule of the collection types](https://www.terraform.io/docs/language/expressions/type-constraints.html#collection-types)
+is that the values in the collections must all be the exact same type.
 For example, you cannot have a list where some values are boolean and some are string. Maps require
 that all keys be strings, but the map values can be any type, except again all the values in a map
 must be the same type. In other words, the values of a map must form a valid list.
 
 Objects look just like maps. The difference between an object and a map is that the values in an
-object do not all have to be the same type. The keys (called "attributes" in an object) must still be strings.
+object do not all have to be the same type.
 
-The "type" of an object is itself an object: the attributes are the same, and the values are the types of the values.
+The "type" of an object is itself an object: the keys are the same, and the values are the types of the values in the object.
 
 So although `{ foo = "bar", baz = {} }` and `{ foo = "bar", baz = [] }` are both objects,
-they are not of the same type. This means you cannot put them both in the same list or the same map.
+they are not of the same type. This means you cannot put them both in the same list or the same map,
+even though you can put them in a single tuple or object.
 Similarly, and closer to the problem at hand,
+
 ```hcl
 cidr_rule = {
   type        = "ingress"
@@ -138,7 +145,7 @@ self_rule = {
 ```
 This means you cannot put both of those in the same list.
 ```hcl
-my_rules = tolist([local.cidr_rule, local.self_rule])
+rules = tolist([local.cidr_rule, local.self_rule])
 ```
 Generates the error
 ```text
@@ -148,7 +155,7 @@ Invalid value for "v" parameter: cannot convert tuple to list of any single type
 You could make them the same type and put them in a list,
 like this:
 ```hcl
-my_rules = tolist([{
+rules = tolist([{
   type        = "ingress"
   cidr_blocks = ["0.0.0.0/0"]
   self        = null
@@ -159,35 +166,42 @@ my_rules = tolist([{
   self        = true
 }])
 ```
-That remains an option for you when inputting rules, and is probably better when you have full control over all the rules.
+That remains an option for you when generating the rules, and is probably better when you have full control over all the rules.
 However, what if some of the rules are coming from a source outside of your control? You cannot simply add those rules
 to your list. So, what to do? Create an object whose attributes' values can be of different types.
 ```hcl
 { mine = local.my_rules, theirs = var.their_rules }
 ```
 
-That is why the `rules` object has the structure it has.
+That is why the `rules_map` input is available. It will accept a structure like that, an object whose
+attribute values are lists of rules, where the lists themselves can be different types.
 
 </summary>
 
-The `rules` input takes an object.
-- The attribute names (keys) of the object can be anything you want, but need to be known during `terraform apply`,
+The `rules_map` input takes an object.
+- The attribute names (keys) of the object can be anything you want, but need to be known during `terraform plan`,
 which means they cannot depend on any resources created or changed by Terraform.
-- The values of the attributes are lists of objects, each object representing one Security Group Rule. As explained
+- The values of the attributes are lists of rule objects, each object representing one Security Group Rule. As explained
   above in "Why the input is so complex", each object in the list must be exactly the same type. To use multiple types,
   you must put them in separate lists which are values of separate attributes.
+
+###### Definition of a rule
+
+For this module, a rule is defined as an object.
 - The attributes and values of the rule objects are fully compatible (have the same keys and accept the same values) as the
 Terraform [aws_security_group_rule resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule),
 except
    - The `security_group_id` will be ignored, if present
    - You can include an optional `key` attribute. If present, its value must be unique among all security group rules in the
-     security group, and it must be known during `terraform apply`.
+     security group, and it must be known in the Terraform "plan" phase, meaning it cannot depend on anything being
+     generated or created by Terraform.
 
 The `key` attribute value, if provided, will be used to identify the Security Group Rule to Terraform in order to
 prevent Terraform from modifying it unnecessarily. If the `key` is not provided, Terraform will assign an identifier
 based on the rule's position in its list, which can cause a ripple effect of rules being deleted and recreated if
 a rule gets deleted from start of a list, causing all the other rules to shift position.
 See ["Unexpected changes..."](#unexpected-changes-during-plan-and-apply) below for more details.
+
 
 ##### `rule_matrix` input
 The other way to set rules is via the `rule_matrix` input. This splits the attributes of the `aws_security_group_rule`
@@ -280,7 +294,13 @@ have to include that same attribute in all of them.  In rules where the key woul
 unless the value is a list type, in which case set the value to `[]` (an empty list), due to [#28137](https://github.com/hashicorp/terraform/issues/28137).
 
 
-### Example code
+
+
+## Examples
+
+
+See [examples/complete/main.tf](https://github.com/cloudposse/terraform-aws-security-group/examples/complete/main.tf) for
+even more examples.
 
 ```hcl
 module "label" {
@@ -312,8 +332,6 @@ module "sg" {
   source = "cloudposse/security-group/aws"
   # Cloud Posse recommends pinning every module to a specific version
   # version = "x.x.x"
-  
-  vpc_id = module.vpc.vpc_id
 
   # Security Group names must be unique within a VPC.
   # This module follows Cloud Posse naming conventions and generates the name
@@ -326,7 +344,7 @@ module "sg" {
   # Allow unlimited egress
   allow_all_egress = true
 
-  rules = { in = [
+  rules = [
     {
       key         = "ssh"
       type        = "ingress"
@@ -346,8 +364,8 @@ module "sg" {
       cidr_blocks = []
       self        = true
       description = "Allow HTTP from inside the security group"
-    },
-  ]}
+    }
+  ]
 
   vpc_id  = module.vpc.vpc_id
 
@@ -389,14 +407,6 @@ module "sg_mysql" {
 }
 
 ```
-
-
-
-
-## Examples
-
-We have an example of using this module:
-- [`examples/complete`](https://github.com/cloudposse/terraform-aws-security-group/examples/complete) - complete example of using this module
 
 
 
@@ -464,11 +474,12 @@ Available targets:
 | <a name="input_regex_replace_chars"></a> [regex\_replace\_chars](#input\_regex\_replace\_chars) | Terraform regular expression (regex) string.<br>Characters matching the regex will be removed from the ID elements.<br>If not set, `"/[^a-zA-Z0-9-]/"` is used to remove all characters other than hyphens, letters and digits. | `string` | `null` | no |
 | <a name="input_revoke_rules_on_delete"></a> [revoke\_rules\_on\_delete](#input\_revoke\_rules\_on\_delete) | Instruct Terraform to revoke all of the Security Group's attached ingress and egress rules before deleting<br>the security group itself. This is normally not needed. | `bool` | `false` | no |
 | <a name="input_rule_matrix"></a> [rule\_matrix](#input\_rule\_matrix) | A convenient way to apply the same set of rules to a set of subjects. See README for details. | `any` | `[]` | no |
-| <a name="input_rules"></a> [rules](#input\_rules) | An object (like a map) of lists of Security Group rule objects. All elements of a list must be exactly the same<br>type, so this input accepts an object with keys (attributes) whose values are lists so you can separate different<br>types into different lists and still pass them into one input. Keys must be known at "plan" time.<br>The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,<br>except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique<br>and known at "plan" time.<br>To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule . | `any` | `{}` | no |
+| <a name="input_rules"></a> [rules](#input\_rules) | A list of Security Group rule objects. All elements of a list must be exactly the same type;<br>use `rules_map` if you want to supply multiple lists of different types.<br>The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,<br>except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique<br>and known at "plan" time.<br>To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule . | `list(any)` | `[]` | no |
+| <a name="input_rules_map"></a> [rules\_map](#input\_rules\_map) | A map-like object of lists of Security Group rule objects. All elements of a list must be exactly the same type,<br>so this input accepts an object with keys (attributes) whose values are lists so you can separate different<br>types into different lists and still pass them into one input. Keys must be known at "plan" time.<br>The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,<br>except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique<br>and known at "plan" time.<br>To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule . | `any` | `{}` | no |
 | <a name="input_security_group_create_timeout"></a> [security\_group\_create\_timeout](#input\_security\_group\_create\_timeout) | How long to wait for the security group to be created. | `string` | `"10m"` | no |
 | <a name="input_security_group_delete_timeout"></a> [security\_group\_delete\_timeout](#input\_security\_group\_delete\_timeout) | How long to retry on `DependencyViolation` errors during security group deletion from<br>lingering ENIs left by certain AWS services such as Elastic Load Balancing. | `string` | `"15m"` | no |
 | <a name="input_security_group_description"></a> [security\_group\_description](#input\_security\_group\_description) | The description to assign to the created Security Group.<br>Warning: Changing the description causes the security group to be replaced. | `string` | `"Managed by Terraform"` | no |
-| <a name="input_security_group_name"></a> [security\_group\_name](#input\_security\_group\_name) | The name to assign to the security group. Must be unique within the VPC.<br>If not provided, will be derived from the `null-label.context` passed in.<br>If `create_before_destroy` is true, will be used as a name prefix. | `string` | `""` | no |
+| <a name="input_security_group_name"></a> [security\_group\_name](#input\_security\_group\_name) | The name to assign to the security group. Must be unique within the VPC.<br>If not provided, will be derived from the `null-label.context` passed in.<br>If `create_before_destroy` is true, will be used as a name prefix. | `list(string)` | `[]` | no |
 | <a name="input_stage"></a> [stage](#input\_stage) | ID element. Usually used to indicate role, e.g. 'prod', 'staging', 'source', 'build', 'test', 'deploy', 'release' | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Additional tags (e.g. `{'BusinessUnit': 'XYZ'}`).<br>Neither the tag keys nor the tag values will be modified by this module. | `map(string)` | `{}` | no |
 | <a name="input_target_security_group_id"></a> [target\_security\_group\_id](#input\_target\_security\_group\_id) | The ID of an existing Security Group to which Security Group rules will be assigned.<br>The Security Group's description will not be changed.<br>Not compatible with `inline_rules_enabled` or `revoke_rules_on_delete`.<br>Required if `create_security_group` is `false`, ignored otherwise. | `list(string)` | `[]` | no |

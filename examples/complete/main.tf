@@ -1,3 +1,9 @@
+# Terraform for testing with terratest
+#
+# For this module, a large portion of the test is simply
+# verifying that Terraform can generate a plan without errors.
+#
+
 provider "aws" {
   region = var.region
 }
@@ -18,6 +24,21 @@ resource "random_integer" "coin" {
   min = 1
 }
 
+locals {
+  coin = [random_integer.coin.result]
+}
+
+module "simple_security_group" {
+  source = "../.."
+
+  attributes = ["simple"]
+  rules      = var.rules
+
+  vpc_id = module.vpc.vpc_id
+
+  context = module.this.context
+}
+
 # Create a new security group
 
 module "new_security_group" {
@@ -32,6 +53,8 @@ module "new_security_group" {
     # The dynamic value for source_security_group_ids breaks Terraform 0.13 but should work in 0.14 or later
     source_security_group_ids = [aws_security_group.target.id]
     # Either dynamic value for CIDRs breaks Terraform 0.13 but should work in 0.14 or later
+    # In TF 0.14 and later (through 1.0.x) if the length of the cidr_blocks
+    # list is not available at plan time, the module breaks.
     cidr_blocks      = random_integer.coin.result > 1 ? ["10.0.0.0/16"] : ["10.0.0.0/24"]
     ipv6_cidr_blocks = [module.vpc.ipv6_cidr_block]
     prefix_list_ids  = []
@@ -60,7 +83,8 @@ module "new_security_group" {
     ]
   }]
 
-  rules = merge(var.rules, { new-cidr = [
+  rules = var.rules
+  rules_map = merge({ new-cidr = [
     {
       key                      = "https-cidr"
       type                     = "ingress"
@@ -72,7 +96,7 @@ module "new_security_group" {
       source_security_group_id = null
       description              = "Discrete HTTPS ingress by CIDR"
       self                     = null
-    }],
+    }] }, {
     new-sg = [{
       # no key provided
       type                     = "ingress"

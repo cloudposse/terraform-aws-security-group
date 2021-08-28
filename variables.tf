@@ -14,14 +14,19 @@ variable "target_security_group_id" {
 }
 
 variable "security_group_name" {
-  type        = string
-  default     = ""
+  type        = list(string)
+  default     = []
   description = <<-EOT
     The name to assign to the security group. Must be unique within the VPC.
     If not provided, will be derived from the `null-label.context` passed in.
     If `create_before_destroy` is true, will be used as a name prefix.
     EOT
+  validation {
+    condition     = length(var.security_group_name) < 2
+    error_message = "Only 1 security group name can be provided."
+  }
 }
+
 
 variable "security_group_description" {
   type        = string
@@ -53,11 +58,24 @@ variable "allow_all_egress" {
 }
 
 variable "rules" {
+  type        = list(any)
+  default     = []
+  description = <<-EOT
+    A list of Security Group rule objects. All elements of a list must be exactly the same type;
+    use `rules_map` if you want to supply multiple lists of different types.
+    The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,
+    except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique
+    and known at "plan" time.
+    To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule .
+    EOT
+}
+
+variable "rules_map" {
   type        = any
   default     = {}
   description = <<-EOT
-    An object (like a map) of lists of Security Group rule objects. All elements of a list must be exactly the same
-    type, so this input accepts an object with keys (attributes) whose values are lists so you can separate different
+    A map-like object of lists of Security Group rule objects. All elements of a list must be exactly the same type,
+    so this input accepts an object with keys (attributes) whose values are lists so you can separate different
     types into different lists and still pass them into one input. Keys must be known at "plan" time.
     The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,
     except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique
@@ -69,6 +87,8 @@ variable "rules" {
 variable "rule_matrix" {
   # rule_matrix is independent of the `rules` input.
   # Only the rules specified in the `rule_matrix` object are applied to the subjects specified in `rule_matrix`.
+  # The `key` attributes are optional, but if supplied, must be known at plan time or else
+  # you will get an error from Terraform. If the value is triggering an error, just omit it.
   #  Schema:
   #  {
   #    # these top level lists define all the subjects to which rule_matrix rules will be applied

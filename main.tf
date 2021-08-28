@@ -25,7 +25,7 @@ resource "aws_security_group" "default" {
   # Because we have 2 almost identical alternatives, use x == false and x == true rather than x and !x
   count = local.create_security_group && var.create_before_destroy == false ? 1 : 0
 
-  name = coalesce(var.security_group_name, module.this.id)
+  name = concat(var.security_group_name, [module.this.id])[0]
 
   ########################################################################
   ## Everything from here to the end of this resource should be identical
@@ -33,7 +33,7 @@ resource "aws_security_group" "default" {
 
   description = var.security_group_description
   vpc_id      = var.vpc_id
-  tags        = try(length(var.security_group_name), 0) > 0 ? merge(module.this.tags, { Name = var.security_group_name }) : module.this.tags
+  tags        = merge(module.this.tags, try(length(var.security_group_name), 0) > 0 ? { Name = var.security_group_name } : {})
 
   revoke_rules_on_delete = var.revoke_rules_on_delete
 
@@ -82,7 +82,7 @@ resource "aws_security_group" "cbd" {
   # Because we have 2 almost identical alternatives, use x == false and x == true rather than x and !x
   count = local.create_security_group && var.create_before_destroy == true ? 1 : 0
 
-  name_prefix = coalesce(var.security_group_name, "${module.this.id}${module.this.delimiter}")
+  name_prefix = concat(var.security_group_name, ["${module.this.id}${module.this.delimiter}"])[0]
   lifecycle {
     create_before_destroy = true
   }
@@ -93,7 +93,7 @@ resource "aws_security_group" "cbd" {
 
   description = var.security_group_description
   vpc_id      = var.vpc_id
-  tags        = try(length(var.security_group_name), 0) > 0 ? merge(module.this.tags, { Name = var.security_group_name }) : module.this.tags
+  tags        = merge(module.this.tags, try(length(var.security_group_name), 0) > 0 ? { Name = var.security_group_name } : {})
 
   revoke_rules_on_delete = var.revoke_rules_on_delete
 

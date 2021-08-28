@@ -3,10 +3,15 @@
 
 locals {
 
+  # We have var.rules_map as a key-value object where the values are lists of different types.
+  # For convenience, the ordinary use cases, and ease of understanding, we also have var.rules,
+  # which is a single list of rules. First thing we do is to combine the 2 into one object.
+  rules = merge({ _list_ = var.rules }, var.rules_map)
+
   # Note: we have to use [] instead of null for unset lists due to
   # https://github.com/hashicorp/terraform/issues/28137
   # which was not fixed until Terraform 1.0.0
-  norm_rules = local.enabled && var.rules != null ? concat(concat([[]], [for k, rules in var.rules : [for i, rule in rules : {
+  norm_rules = local.enabled && local.rules != null ? concat(concat([[]], [for k, rules in local.rules : [for i, rule in rules : {
     key         = coalesce(lookup(rule, "key", null), "${k}[${i}]")
     type        = rule.type
     from_port   = rule.from_port
