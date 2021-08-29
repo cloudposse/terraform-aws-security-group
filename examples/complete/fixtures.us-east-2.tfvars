@@ -25,6 +25,6 @@ rules = [
     to_port     = 23
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Telenet wide open"
+    description = "Telnet wide open"
   }
 ]
