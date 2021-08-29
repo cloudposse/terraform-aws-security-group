@@ -1,6 +1,7 @@
 package test
 
 import (
+	"k8s.io/apimachinery/pkg/util/runtime"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -12,7 +13,7 @@ import (
 
 // Test the Terraform module in examples/complete using Terratest.
 func TestExamplesComplete(t *testing.T) {
-  // Cannot run in parallel with InitAndApply (parallel inits clobber each other) or default statefile name
+	// Cannot run in parallel with InitAndApply (parallel inits clobber each other) or default statefile name
 	//t.Parallel()
 
 	rand.Seed(time.Now().UnixNano())
@@ -34,28 +35,30 @@ func TestExamplesComplete(t *testing.T) {
 	// At the end of the test, run `terraform destroy` to clean up any resources that were created
 	defer terraform.Destroy(t, terraformOptions)
 
+	// If Go runtime crushes, run `terraform destroy` to clean up any resources that were created
+	defer runtime.HandleCrash(func(i interface{}) {
+		terraform.Destroy(t, terraformOptions)
+	})
+
 	// This will run `terraform init` and `terraform apply` and fail the test if there are any errors
 	terraform.InitAndApply(t, terraformOptions)
 
 	// Run `terraform output` to get the value of an output variable
 
-	// Verify that outputs are valid when `security_group_enabled=true`
-	newSgID := terraform.Output(t, terraformOptions, "new_sg_id")
-	newSgARN := terraform.Output(t, terraformOptions, "new_sg_arn")
-	newSgName := terraform.Output(t, terraformOptions, "new_sg_name")
+	// Verify that outputs are valid when no target security group is supplied
+	newSgID := terraform.Output(t, terraformOptions, "created_sg_id")
+	newSgARN := terraform.Output(t, terraformOptions, "created_sg_arn")
+	newSgName := terraform.Output(t, terraformOptions, "created_sg_name")
 
 	assert.Contains(t, newSgID, "sg-", "SG ID should contains substring 'sg-'")
 	assert.Contains(t, newSgARN, "arn:aws:ec2", "SG ID should contains substring 'arn:aws:ec2'")
 	assert.Equal(t, "eg-ue2-test-sg-"+randID, newSgName)
 
-	// Verify that outputs are valid when `security_group_enabled=false` and `sg_id` set to external SG ID
-	externalSgID := terraform.Output(t, terraformOptions, "external_sg_id")
-	externalSgARN := terraform.Output(t, terraformOptions, "external_sg_arn")
-	externalSgName := terraform.Output(t, terraformOptions, "external_sg_name")
+	// Verify that outputs are valid when an existing security group is provided
+  targetSgID := terraform.Output(t, terraformOptions, "target_sg_id")
+  testSgID := terraform.Output(t, terraformOptions, "test_created_sg_id")
 
-	assert.Contains(t, externalSgID, "sg-", "SG ID should contains substring 'sg-'")
-	assert.Contains(t, externalSgARN, "arn:aws:ec2", "SG ID should contains substring 'arn:aws:ec2'")
-	assert.Contains(t, externalSgName, "eg-ue2-test-sg-"+randID)
+  assert.Equal(t, testSgID, targetSgID, "Module should return provided SG ID as \"id\" output")
 
 	// Verify that outputs are empty when module is disabled
 	disabledSgID := terraform.Output(t, terraformOptions, "disabled_sg_id")

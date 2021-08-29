@@ -10,17 +10,21 @@ name = "sg"
 
 rules = [
   {
+    key         = null # "ssh all"
     type        = "ingress"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "SSH wide open"
   },
   {
-    type        = "egress"
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "all"
+    key         = "telnet all"
+    type        = "ingress"
+    from_port   = 23
+    to_port     = 23
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Telnet wide open"
   }
 ]
