@@ -30,8 +30,8 @@ variable "associated_security_group_ids" {
   default     = []
   description = <<-EOT
     A list of IDs of Security Groups to associate the created resource with, in addition to the created security group.
-    These security groups will not be modified and, if `create_security_group` is `false`, must provide all the required access.
-  EOT
+    These security groups will not be modified and, if `create_security_group` is `false`, must have rules providing the desired access.
+    EOT
 }
 
 variable "allowed_security_group_ids" {
@@ -39,8 +39,8 @@ variable "allowed_security_group_ids" {
   default     = []
   description = <<-EOT
     A list of IDs of Security Groups to allow access to the security group created by this module.
-  EOT
-}
+    EOT
+ }
 
 variable "security_group_name" {
   type        = list(string)
@@ -49,7 +49,7 @@ variable "security_group_name" {
     The name to assign to the created security group. Must be unique within the VPC.
     If not provided, will be derived from the `null-label.context` passed in.
     If `create_before_destroy` is true, will be used as a name prefix.
-  EOT
+    EOT
 }
 
 variable "security_group_description" {
@@ -138,10 +138,10 @@ variable "vpc_id" {
 variable "revoke_security_group_rules_on_delete" {
   type        = bool
   default     = false
-  description = <<-EOF
+  description = <<-EOT
     Instruct Terraform to revoke all of the Security Group's attached ingress and egress rules before deleting
     the security group itself. This is normally not needed.
-    EOF
+    EOT
 }
 
 variable "allow_all_egress" {
