@@ -176,7 +176,7 @@ to your list. So, what to do? Create an object whose attributes' values can be o
 That is why the `rules_map` input is available. It will accept a structure like that, an object whose
 attribute values are lists of rules, where the lists themselves can be different types.
 
-</summary>
+</details>
 
 The `rules_map` input takes an object.
 - The attribute names (keys) of the object can be anything you want, but need to be known during `terraform plan`,
