@@ -52,7 +52,7 @@ func TestExamplesComplete(t *testing.T) {
 
 	assert.Contains(t, newSgID, "sg-", "SG ID should contains substring 'sg-'")
 	assert.Contains(t, newSgARN, "arn:aws:ec2", "SG ID should contains substring 'arn:aws:ec2'")
-	assert.Equal(t, "eg-ue2-test-sg-"+randID, newSgName)
+	assert.Equal(t, "eg-ue2-test-sg-"+randID+"-new", newSgName)
 
 	// Verify that outputs are valid when an existing security group is provided
   targetSgID := terraform.Output(t, terraformOptions, "target_sg_id")
