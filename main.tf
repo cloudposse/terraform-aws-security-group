@@ -33,7 +33,7 @@ resource "aws_security_group" "default" {
 
   description = var.security_group_description
   vpc_id      = var.vpc_id
-  tags        = merge(module.this.tags, try(length(var.security_group_name), 0) > 0 ? { Name = var.security_group_name } : {})
+  tags        = merge(module.this.tags, try(length(var.security_group_name[0]), 0) > 0 ? { Name = var.security_group_name[0] } : {})
 
   revoke_rules_on_delete = var.revoke_rules_on_delete
 
@@ -93,7 +93,7 @@ resource "aws_security_group" "cbd" {
 
   description = var.security_group_description
   vpc_id      = var.vpc_id
-  tags        = merge(module.this.tags, try(length(var.security_group_name), 0) > 0 ? { Name = var.security_group_name } : {})
+  tags        = merge(module.this.tags, try(length(var.security_group_name[0]), 0) > 0 ? { Name = var.security_group_name[0] } : {})
 
   revoke_rules_on_delete = var.revoke_rules_on_delete
 
@@ -148,7 +148,7 @@ resource "aws_security_group_rule" "keyed" {
   description      = each.value.description
   cidr_blocks      = length(each.value.cidr_blocks) == 0 ? null : each.value.cidr_blocks
   ipv6_cidr_blocks = length(each.value.ipv6_cidr_blocks) == 0 ? null : each.value.ipv6_cidr_blocks
-  prefix_list_ids  = length(each.value.prefix_list_ids) == 0 ? null : each.value.prefix_list_ids
+  prefix_list_ids  = length(each.value.prefix_list_ids) == 0 ? [] : each.value.prefix_list_ids
   self             = each.value.self
 
   security_group_id        = local.security_group_id

@@ -115,6 +115,8 @@ module "new_security_group" {
   security_group_create_timeout = "5m"
   security_group_delete_timeout = "2m"
 
+  security_group_name = [format("%s-%s", module.this.id, "new")]
+
   context = module.this.context
 }
 
@@ -135,7 +137,8 @@ module "target_security_group" {
   target_security_group_id = [aws_security_group.target.id]
   rules                    = var.rules
 
-  vpc_id = module.vpc.vpc_id
+  security_group_name = [aws_security_group.target.name_prefix]
+  vpc_id              = module.vpc.vpc_id
 
   context = module.this.context
 }
