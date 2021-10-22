@@ -138,7 +138,7 @@ module "target_security_group" {
   rules                    = var.rules
 
   security_group_name = [aws_security_group.target.name_prefix]
-  vpc_id = module.vpc.vpc_id
+  vpc_id              = module.vpc.vpc_id
 
   context = module.this.context
 }
