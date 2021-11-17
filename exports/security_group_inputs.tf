@@ -83,8 +83,8 @@ variable "allowed_ipv6_prefix_list_ids" {
 ## End of optional allowed_* ###########
 
 variable "security_group_name" {
-  type        = list(string)
-  default     = []
+  type        = string
+  default     = null
   description = <<-EOT
     The name to assign to the created security group. Must be unique within the VPC.
     If not provided, will be derived from the `null-label.context` passed in.

@@ -6,7 +6,7 @@ locals {
 
   default_rule_description = "Managed by Terraform"
 
-  create_security_group = local.enabled && length(var.target_security_group_id) == 0
+  create_security_group = local.enabled && length(var.target_security_group_id[*]) == 0
 
   created_security_group = local.create_security_group ? (
     var.create_before_destroy ? aws_security_group.cbd[0] : aws_security_group.default[0]
@@ -14,7 +14,7 @@ locals {
 
   security_group_id = local.enabled ? (
     # Use coalesce() here to hack an error message into the output
-    local.create_security_group ? local.created_security_group.id : coalesce(var.target_security_group_id[0],
+    local.create_security_group ? local.created_security_group.id : coalesce(var.target_security_group_id,
     "var.target_security_group_id contains null value. Omit value if you want this module to create a security group.")
   ) : null
 }
@@ -25,7 +25,7 @@ resource "aws_security_group" "default" {
   # Because we have 2 almost identical alternatives, use x == false and x == true rather than x and !x
   count = local.create_security_group && var.create_before_destroy == false ? 1 : 0
 
-  name = concat(var.security_group_name, [module.this.id])[0]
+  name = concat(var.security_group_name[*], [module.this.id])[0]
 
   ########################################################################
   ## Everything from here to the end of this resource should be identical
@@ -33,7 +33,7 @@ resource "aws_security_group" "default" {
 
   description = var.security_group_description
   vpc_id      = var.vpc_id
-  tags        = merge(module.this.tags, try(length(var.security_group_name[0]), 0) > 0 ? { Name = var.security_group_name[0] } : {})
+  tags        = merge(module.this.tags, try(length(var.security_group_name[*]), 0) > 0 ? { Name = var.security_group_name } : {})
 
   revoke_rules_on_delete = var.revoke_rules_on_delete
 
@@ -82,7 +82,7 @@ resource "aws_security_group" "cbd" {
   # Because we have 2 almost identical alternatives, use x == false and x == true rather than x and !x
   count = local.create_security_group && var.create_before_destroy == true ? 1 : 0
 
-  name_prefix = concat(var.security_group_name, ["${module.this.id}${module.this.delimiter}"])[0]
+  name_prefix = concat(var.security_group_name[*], ["${module.this.id}${module.this.delimiter}"])[0]
   lifecycle {
     create_before_destroy = true
   }
@@ -93,7 +93,7 @@ resource "aws_security_group" "cbd" {
 
   description = var.security_group_description
   vpc_id      = var.vpc_id
-  tags        = merge(module.this.tags, try(length(var.security_group_name[0]), 0) > 0 ? { Name = var.security_group_name[0] } : {})
+  tags        = merge(module.this.tags, try(length(var.security_group_name[*]), 0) > 0 ? { Name = var.security_group_name } : {})
 
   revoke_rules_on_delete = var.revoke_rules_on_delete
 

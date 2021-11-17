@@ -1,30 +1,22 @@
 variable "target_security_group_id" {
-  type        = list(string)
-  default     = []
+  type        = string
+  default     = null
   description = <<-EOT
     The ID of an existing Security Group to which Security Group rules will be assigned.
     The Security Group's description will not be changed.
     Not compatible with `inline_rules_enabled` or `revoke_rules_on_delete`.
     Required if `create_security_group` is `false`, ignored otherwise.
     EOT
-  validation {
-    condition     = length(var.target_security_group_id) < 2
-    error_message = "Only 1 security group can be targeted."
-  }
 }
 
 variable "security_group_name" {
-  type        = list(string)
-  default     = []
+  type        = string
+  default     = null
   description = <<-EOT
     The name to assign to the security group. Must be unique within the VPC.
     If not provided, will be derived from the `null-label.context` passed in.
     If `create_before_destroy` is true, will be used as a name prefix.
     EOT
-  validation {
-    condition     = length(var.security_group_name) < 2
-    error_message = "Only 1 security group name can be provided."
-  }
 }
 
 
