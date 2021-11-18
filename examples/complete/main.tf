@@ -133,8 +133,8 @@ module "target_security_group" {
   source = "../.."
 
   allow_all_egress = true
-  # create_security_group    = false
-  target_security_group_id = aws_security_group.target.id
+
+  target_security_group_id = random_integer.coin.result > 9 ? aws_security_group.target.id : null
   rules                    = var.rules
 
   security_group_name = aws_security_group.target.name_prefix

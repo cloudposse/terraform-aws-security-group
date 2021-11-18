@@ -5,7 +5,6 @@ variable "target_security_group_id" {
     The ID of an existing Security Group to which Security Group rules will be assigned.
     The Security Group's description will not be changed.
     Not compatible with `inline_rules_enabled` or `revoke_rules_on_delete`.
-    Required if `create_security_group` is `false`, ignored otherwise.
     EOT
 }
 

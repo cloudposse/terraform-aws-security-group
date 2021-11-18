@@ -58,7 +58,7 @@ func TestExamplesComplete(t *testing.T) {
   targetSgID := terraform.Output(t, terraformOptions, "target_sg_id")
   testSgID := terraform.Output(t, terraformOptions, "test_created_sg_id")
 
-  assert.Equal(t, testSgID, targetSgID, "Module should return provided SG ID as \"id\" output")
+  assert.NotEqual(t, testSgID, targetSgID, "Module should not return provided SG ID as \"id\" output")
 
 	// Verify that outputs are empty when module is disabled
 	disabledSgID := terraform.Output(t, terraformOptions, "disabled_sg_id")
