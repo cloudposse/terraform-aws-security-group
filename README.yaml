@@ -24,7 +24,7 @@ license: "APACHE2"
 copyrights:
   - name: "Cloud Posse, LLC"
     url: "https://cloudposse.com"
-    year: "2021"
+    year: "2021-2022"
 
 # Canonical GitHub repo
 github_repo: cloudposse/terraform-aws-security-group
@@ -389,3 +389,7 @@ contributors:
     github: "osterman"
   - name: "Vladimir"
     github: "SweetOps"
+  - name: "RB"
+    github: "nitrocode"
+  - name: "Andriy Knysh"
+    github: "aknysh"
