@@ -1,6 +1,6 @@
-# security_group_inputs Version: 2
+# security-group-inputs Version: 2
 #
-# Copy this file from https://github.com/cloudposse/terraform-aws-security-group/blob/master/exports/security_group_inputs.tf
+# Copy this file from https://github.com/cloudposse/terraform-aws-security-group/blob/master/exports/security-group-inputs.tf
 # and EDIT IT TO SUIT YOUR PROJECT. Update the version number above if you update this file from a later version.
 # Unlike null-label context.tf, this file cannot be automatically updated
 # because of the tight integration with the module using it.

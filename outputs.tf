@@ -1,4 +1,3 @@
-
 output "id" {
   description = "The created or target Security Group ID"
   value       = local.security_group_id

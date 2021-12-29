@@ -47,3 +47,8 @@ output "disabled_sg_name" {
   description = "The disabled Security Group Name (should be empty)"
   value       = module.disabled_security_group.name == null ? "" : module.disabled_security_group.name
 }
+
+output "rules_terraform_ids" {
+  description = "List of Terraform IDs of created `security_group_rule` resources"
+  value       = module.new_security_group.rules_terraform_ids
+}
