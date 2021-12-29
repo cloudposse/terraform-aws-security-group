@@ -139,7 +139,7 @@ resource "aws_security_group" "cbd" {
 }
 
 resource "aws_security_group_rule" "keyed_cidr_blocks" {
-  for_each = { for k, v in local.keyed_resource_rules : k => v if length(lookup(v, "cidr_blocks", [])) > 0 }
+  for_each = { for k, v in local.keyed_resource_rules : k => v if lookup(v, "cidr_blocks", null) != null }
 
   security_group_id = local.security_group_id
 
@@ -159,7 +159,7 @@ resource "aws_security_group_rule" "keyed_cidr_blocks" {
 }
 
 resource "aws_security_group_rule" "keyed_ipv6_cidr_blocks" {
-  for_each = { for k, v in local.keyed_resource_rules : k => v if length(lookup(v, "ipv6_cidr_blocks", [])) > 0 }
+  for_each = { for k, v in local.keyed_resource_rules : k => v if lookup(v, "ipv6_cidr_blocks", null) != null }
 
   security_group_id = local.security_group_id
 
@@ -179,7 +179,7 @@ resource "aws_security_group_rule" "keyed_ipv6_cidr_blocks" {
 }
 
 resource "aws_security_group_rule" "keyed_prefix_list_ids" {
-  for_each = { for k, v in local.keyed_resource_rules : k => v if length(lookup(v, "prefix_list_ids", [])) > 0 }
+  for_each = { for k, v in local.keyed_resource_rules : k => v if lookup(v, "prefix_list_ids", null) != null }
 
   security_group_id = local.security_group_id
 
@@ -219,7 +219,7 @@ resource "aws_security_group_rule" "keyed_self" {
 }
 
 resource "aws_security_group_rule" "keyed_source_security_group_id" {
-  for_each = { for k, v in local.keyed_resource_rules : k => v if length(lookup(v, "source_security_group_id", "")) > 0 }
+  for_each = { for k, v in local.keyed_resource_rules : k => v if lookup(v, "source_security_group_id", null) != null }
 
   security_group_id = local.security_group_id
 
