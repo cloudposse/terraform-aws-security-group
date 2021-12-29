@@ -156,4 +156,10 @@ locals {
 
   all_resource_rules   = concat(local.norm_rules, local.self_rules, local.sg_exploded_rules, local.other_rules, local.extra_rules)
   keyed_resource_rules = { for r in local.all_resource_rules : r.key => r }
+
+  keyed_resource_rules_cidr_blocks              = { for r in local.all_resource_rules : r.key => r if try(length(r.cidr_blocks), 0) > 0 }
+  keyed_resource_rules_ipv6_cidr_blocks         = { for r in local.all_resource_rules : r.key => r if try(length(r.ipv6_cidr_blocks), 0) > 0 }
+  keyed_resource_rules_prefix_list_ids          = { for r in local.all_resource_rules : r.key => r if try(length(r.prefix_list_ids), 0) > 0 }
+  keyed_resource_rules_self                     = { for r in local.all_resource_rules : r.key => r if try(r.self, false) == true }
+  keyed_resource_rules_source_security_group_id = { for r in local.all_resource_rules : r.key => r if try(length(r.source_security_group_id), 0) > 0 }
 }
