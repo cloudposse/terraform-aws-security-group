@@ -55,10 +55,10 @@ func TestExamplesComplete(t *testing.T) {
 	assert.Equal(t, "eg-ue2-test-sg-"+randID+"-new", newSgName)
 
 	// Verify that outputs are valid when an existing security group is provided
-  targetSgID := terraform.Output(t, terraformOptions, "target_sg_id")
-  testSgID := terraform.Output(t, terraformOptions, "test_created_sg_id")
+	targetSgID := terraform.Output(t, terraformOptions, "target_sg_id")
+	testSgID := terraform.Output(t, terraformOptions, "test_created_sg_id")
 
-  assert.Equal(t, testSgID, targetSgID, "Module should return provided SG ID as \"id\" output")
+	assert.Equal(t, testSgID, targetSgID, "Module should return provided SG ID as \"id\" output")
 
 	// Verify that outputs are empty when module is disabled
 	disabledSgID := terraform.Output(t, terraformOptions, "disabled_sg_id")
