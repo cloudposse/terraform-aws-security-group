@@ -1,4 +1,3 @@
-
 output "id" {
   description = "The created or target Security Group ID"
   value       = local.security_group_id
@@ -16,5 +15,5 @@ output "name" {
 
 output "rules_terraform_ids" {
   description = "List of Terraform IDs of created `security_group_rule` resources, primarily provided to enable `depends_on`"
-  value       = values(aws_security_group_rule.keyed).*.id
+  value       = local.rules_terraform_ids
 }

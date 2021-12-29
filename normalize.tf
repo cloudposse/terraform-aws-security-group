@@ -157,5 +157,3 @@ locals {
   all_resource_rules   = concat(local.norm_rules, local.self_rules, local.sg_exploded_rules, local.other_rules, local.extra_rules)
   keyed_resource_rules = { for r in local.all_resource_rules : r.key => r }
 }
-
-

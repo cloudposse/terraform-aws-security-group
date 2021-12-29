@@ -138,20 +138,97 @@ resource "aws_security_group" "cbd" {
 
 }
 
-resource "aws_security_group_rule" "keyed" {
-  for_each = local.keyed_resource_rules
+resource "aws_security_group_rule" "keyed_cidr_blocks" {
+  for_each = { for k, v in local.keyed_resource_rules : k => v if length(lookup(v, "cidr_blocks", [])) > 0 }
 
-  type             = each.value.type
-  from_port        = each.value.from_port
-  to_port          = each.value.to_port
-  protocol         = each.value.protocol
-  description      = each.value.description
-  cidr_blocks      = length(each.value.cidr_blocks) == 0 ? [] : each.value.cidr_blocks
-  ipv6_cidr_blocks = length(each.value.ipv6_cidr_blocks) == 0 ? [] : each.value.ipv6_cidr_blocks
-  prefix_list_ids  = length(each.value.prefix_list_ids) == 0 ? [] : each.value.prefix_list_ids
-  self             = each.value.self
+  security_group_id = local.security_group_id
 
-  security_group_id        = local.security_group_id
+  type        = each.value.type
+  from_port   = each.value.from_port
+  to_port     = each.value.to_port
+  protocol    = each.value.protocol
+  description = each.value.description
+
+  cidr_blocks = each.value.cidr_blocks
+
+  depends_on = [aws_security_group.cbd, aws_security_group.default]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_security_group_rule" "keyed_ipv6_cidr_blocks" {
+  for_each = { for k, v in local.keyed_resource_rules : k => v if length(lookup(v, "ipv6_cidr_blocks", [])) > 0 }
+
+  security_group_id = local.security_group_id
+
+  type        = each.value.type
+  from_port   = each.value.from_port
+  to_port     = each.value.to_port
+  protocol    = each.value.protocol
+  description = each.value.description
+
+  ipv6_cidr_blocks = each.value.ipv6_cidr_blocks
+
+  depends_on = [aws_security_group.cbd, aws_security_group.default]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_security_group_rule" "keyed_prefix_list_ids" {
+  for_each = { for k, v in local.keyed_resource_rules : k => v if length(lookup(v, "prefix_list_ids", [])) > 0 }
+
+  security_group_id = local.security_group_id
+
+  type        = each.value.type
+  from_port   = each.value.from_port
+  to_port     = each.value.to_port
+  protocol    = each.value.protocol
+  description = each.value.description
+
+  prefix_list_ids = each.value.prefix_list_ids
+
+  depends_on = [aws_security_group.cbd, aws_security_group.default]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_security_group_rule" "keyed_self" {
+  for_each = { for k, v in local.keyed_resource_rules : k => v if lookup(v, "self", true) == true }
+
+  security_group_id = local.security_group_id
+
+  type        = each.value.type
+  from_port   = each.value.from_port
+  to_port     = each.value.to_port
+  protocol    = each.value.protocol
+  description = each.value.description
+
+  self = each.value.self
+
+  depends_on = [aws_security_group.cbd, aws_security_group.default]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_security_group_rule" "keyed_source_security_group_id" {
+  for_each = { for k, v in local.keyed_resource_rules : k => v if length(lookup(v, "source_security_group_id", "")) > 0 }
+
+  security_group_id = local.security_group_id
+
+  type        = each.value.type
+  from_port   = each.value.from_port
+  to_port     = each.value.to_port
+  protocol    = each.value.protocol
+  description = each.value.description
+
   source_security_group_id = each.value.source_security_group_id
 
   depends_on = [aws_security_group.cbd, aws_security_group.default]
@@ -159,4 +236,14 @@ resource "aws_security_group_rule" "keyed" {
   lifecycle {
     create_before_destroy = true
   }
+}
+
+locals {
+  rules_terraform_ids = concat(
+    values(aws_security_group_rule.keyed_cidr_blocks)[*].id,
+    values(aws_security_group_rule.keyed_ipv6_cidr_blocks)[*].id,
+    values(aws_security_group_rule.keyed_prefix_list_ids)[*].id,
+    values(aws_security_group_rule.keyed_self)[*].id,
+    values(aws_security_group_rule.keyed_source_security_group_id)[*].id
+  )
 }
