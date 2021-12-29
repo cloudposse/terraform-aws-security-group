@@ -139,7 +139,7 @@ resource "aws_security_group" "cbd" {
 }
 
 resource "aws_security_group_rule" "keyed_cidr_blocks" {
-  for_each = { for r in local.all_resource_rules : r.key => r if try(r.cidr_blocks, null) != null }
+  for_each = { for r in local.all_resource_rules : r.key => r if try(length(r.cidr_blocks), 0) > 0 }
 
   security_group_id = local.security_group_id
 
@@ -159,7 +159,7 @@ resource "aws_security_group_rule" "keyed_cidr_blocks" {
 }
 
 resource "aws_security_group_rule" "keyed_ipv6_cidr_blocks" {
-  for_each = { for r in local.all_resource_rules : r.key => r if try(r.ipv6_cidr_blocks, null) != null }
+  for_each = { for r in local.all_resource_rules : r.key => r if try(length(r.ipv6_cidr_blocks), 0) > 0 }
 
   security_group_id = local.security_group_id
 
@@ -179,7 +179,7 @@ resource "aws_security_group_rule" "keyed_ipv6_cidr_blocks" {
 }
 
 resource "aws_security_group_rule" "keyed_prefix_list_ids" {
-  for_each = { for r in local.all_resource_rules : r.key => r if try(r.prefix_list_ids, null) != null }
+  for_each = { for r in local.all_resource_rules : r.key => r if try(length(r.prefix_list_ids), 0) > 0 }
 
   security_group_id = local.security_group_id
 
@@ -219,7 +219,7 @@ resource "aws_security_group_rule" "keyed_self" {
 }
 
 resource "aws_security_group_rule" "keyed_source_security_group_id" {
-  for_each = { for r in local.all_resource_rules : r.key => r if try(r.source_security_group_id, null) != null }
+  for_each = { for r in local.all_resource_rules : r.key => r if try(length(r.source_security_group_id), 0) > 0 }
 
   security_group_id = local.security_group_id
 
