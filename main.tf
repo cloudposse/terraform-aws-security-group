@@ -161,7 +161,3 @@ resource "aws_security_group_rule" "keyed" {
     create_before_destroy = true
   }
 }
-
-locals {
-  rules_terraform_ids = values(aws_security_group_rule.keyed).*.id
-}

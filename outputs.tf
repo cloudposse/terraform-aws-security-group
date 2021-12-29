@@ -15,5 +15,5 @@ output "name" {
 
 output "rules_terraform_ids" {
   description = "List of Terraform IDs of created `security_group_rule` resources, primarily provided to enable `depends_on`"
-  value       = local.rules_terraform_ids
+  value       = values(aws_security_group_rule.keyed).*.id
 }
