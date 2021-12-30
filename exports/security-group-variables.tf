@@ -156,7 +156,6 @@ variable "security_group_delete_timeout" {
     EOT
 }
 
-
 variable "allow_all_egress" {
   type        = bool
   default     = true
