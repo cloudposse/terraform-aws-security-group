@@ -1,43 +1,52 @@
 package test
 
 import (
-	"k8s.io/apimachinery/pkg/util/runtime"
-	"math/rand"
-	"strconv"
+	"os"
+	"strings"
 	"testing"
-	"time"
 
+	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/terraform"
+	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	"github.com/stretchr/testify/assert"
+
+	"k8s.io/apimachinery/pkg/util/runtime"
 )
+
+func cleanup(t *testing.T, terraformOptions *terraform.Options, tempTestFolder string) {
+	terraform.Destroy(t, terraformOptions)
+	os.RemoveAll(tempTestFolder)
+}
 
 // Test the Terraform module in examples/complete using Terratest.
 func TestExamplesComplete(t *testing.T) {
-	// Cannot run in parallel with InitAndApply (parallel inits clobber each other) or default statefile name
-	//t.Parallel()
-
-	rand.Seed(time.Now().UnixNano())
-	randID := strconv.Itoa(rand.Intn(100000))
+	t.Parallel()
+	randID := strings.ToLower(random.UniqueId())
 	attributes := []string{randID}
+
+	rootFolder := "../../"
+	terraformFolderRelativeToRoot := "examples/complete"
+	varFiles := []string{"fixtures.us-east-2.tfvars"}
+
+	tempTestFolder := test_structure.CopyTerraformFolderToTemp(t, rootFolder, terraformFolderRelativeToRoot)
 
 	terraformOptions := &terraform.Options{
 		// The path to where our Terraform code is located
-		TerraformDir: "../../examples/complete",
+		TerraformDir: tempTestFolder,
 		Upgrade:      true,
 		// Variables to pass to our Terraform code using -var-file options
-		VarFiles: []string{"fixtures.us-east-2.tfvars"},
-		// We always include a random attribute so that parallel tests
-		// and AWS resources do not interfere with each other
+		VarFiles: varFiles,
 		Vars: map[string]interface{}{
 			"attributes": attributes,
 		},
 	}
+
 	// At the end of the test, run `terraform destroy` to clean up any resources that were created
-	defer terraform.Destroy(t, terraformOptions)
+	defer cleanup(t, terraformOptions, tempTestFolder)
 
 	// If Go runtime crushes, run `terraform destroy` to clean up any resources that were created
 	defer runtime.HandleCrash(func(i interface{}) {
-		terraform.Destroy(t, terraformOptions)
+		cleanup(t, terraformOptions, tempTestFolder)
 	})
 
 	// This will run `terraform init` and `terraform apply` and fail the test if there are any errors
