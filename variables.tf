@@ -66,7 +66,9 @@ variable "rules" {
     The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,
     except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique
     and known at "plan" time.
-    To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule .
+    To get more info see the `security_group_rule` [documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule).
+    ___Note:___ The length of the list must be known at plan time.
+    This means you cannot use functions like `compact` or `sort` when computing the list.
     EOT
 }
 
@@ -80,7 +82,7 @@ variable "rules_map" {
     The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,
     except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique
     and known at "plan" time.
-    To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule .
+    To get more info see the `security_group_rule` [documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule).
     EOT
 }
 

@@ -10,7 +10,7 @@ provider "aws" {
 
 module "vpc" {
   source  = "cloudposse/vpc/aws"
-  version = "v0.25.0"
+  version = "v1.1.0"
 
   cidr_block = "10.0.0.0/24"
 
@@ -56,7 +56,7 @@ module "new_security_group" {
     # In TF 0.14 and later (through 1.0.x) if the length of the cidr_blocks
     # list is not available at plan time, the module breaks.
     cidr_blocks      = random_integer.coin.result > 1 ? ["10.0.0.0/16"] : ["10.0.0.0/24"]
-    ipv6_cidr_blocks = [module.vpc.ipv6_cidr_block]
+    ipv6_cidr_blocks = [module.vpc.vpc_ipv6_cidr_block]
     prefix_list_ids  = []
 
     # Making `self` derived should break `count`, as it legitimately makes
@@ -92,10 +92,10 @@ module "new_security_group" {
       to_port                  = 443
       protocol                 = "tcp"
       cidr_blocks              = ["10.0.0.0/8"]
-      ipv6_cidr_blocks         = [module.vpc.ipv6_cidr_block] # ["::/0"] #
+      ipv6_cidr_blocks         = [module.vpc.vpc_ipv6_cidr_block] # ["::/0"] #
       source_security_group_id = null
       description              = "Discrete HTTPS ingress by CIDR"
-      self                     = null
+      self                     = false
     }] }, {
     new-sg = [{
       # no key provided

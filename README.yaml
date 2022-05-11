@@ -93,7 +93,15 @@ usage: |-
   The "type" of an object is itself an object: the keys are the same, and the values are the types of the values in the object.
 
   So although `{ foo = "bar", baz = {} }` and `{ foo = "bar", baz = [] }` are both objects,
-  they are not of the same type. This means you cannot put them both in the same list or the same map,
+  they are not of the same type, and you can get error messages like
+
+  ```
+  Error: Inconsistent conditional result types
+  The true and false result expressions must have consistent types. The given
+  expressions are object and object, respectively.
+  ```
+
+  This means you cannot put them both in the same list or the same map,
   even though you can put them in a single tuple or object.
   Similarly, and closer to the problem at hand,
 
@@ -104,23 +112,29 @@ usage: |-
   }
   ```
   is not the same type as
+
   ```hcl
   self_rule = {
     type        = "ingress"
     self        = true
   }
   ```
+
   This means you cannot put both of those in the same list.
+
   ```hcl
   rules = tolist([local.cidr_rule, local.self_rule])
   ```
+
   Generates the error
+
   ```text
   Invalid value for "v" parameter: cannot convert tuple to list of any single type.
   ```
 
   You could make them the same type and put them in a list,
   like this:
+
   ```hcl
   rules = tolist([{
     type        = "ingress"
@@ -133,9 +147,11 @@ usage: |-
     self        = true
   }])
   ```
+
   That remains an option for you when generating the rules, and is probably better when you have full control over all the rules.
   However, what if some of the rules are coming from a source outside of your control? You cannot simply add those rules
   to your list. So, what to do? Create an object whose attributes' values can be of different types.
+
   ```hcl
   { mine = local.my_rules, theirs = var.their_rules }
   ```
@@ -233,7 +249,32 @@ usage: |-
   changed if their keys do not change and the rules themselves do not change, except in the case of
   `rule_matrix`, where the rules are still dependent on the order of the security groups in
   `source_security_group_ids`. You can avoid this by using `rules` instead of `rule_matrix` when you have
-  more than one security group in the list.
+  more than one security group in the list. You cannot avoid this by sorting the
+  `source_security_group_ids`, because that leads to the "Invalid `for_each` argument" error.
+
+  ##### Invalid for_each argument
+  You can supply a number of rules as inputs to this module, and they (usually) get transformed into
+  `aws_security_group_rule` resources. However, Terraform works in 2 steps: a `plan` step where it
+  calculates the changes to be made, and an `apply` step where it makes the changes. This is so you
+  can review and approve the plan before changing anything. One big limitation of this approach is
+  that it requires that Terraform be able to count the number of resources to create without the
+  benefit of any data generated during the `apply` phase. So if you try to generate a rule based
+  on something you are creating at the same time, you can get an error like
+
+  ```
+  Error: Invalid for_each argument
+  The "for_each" value depends on resource attributes that cannot be determined until apply,
+  so Terraform cannot predict how many instances will be created.
+  ```
+
+  This module uses lists to minimize the chance of that happening, as all it needs to know
+  is the length of the list, not the values in it, but this error still can
+  happen for subtle reasons. Most commonly, using a function like `compact` on a list
+  will cause the length to become unknown (since the values have to be checked and `null`s removed).
+  In the case of `source_security_group_ids`, just sorting the list using `sort`
+  will cause this error. If you run into this error, check for functions like `compact` somewhere
+  in the chain that produces the list and remove them if you find them.
+
 
   ##### WARNINGS and Caveats
 
@@ -387,6 +428,8 @@ include:
 contributors:
   - name: "Erik Osterman"
     github: "osterman"
+  - name: "Nuru"
+    github: "Nuru"
   - name: "Vladimir"
     github: "SweetOps"
   - name: "RB"
