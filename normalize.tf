@@ -27,7 +27,9 @@ locals {
     source_security_group_id = lookup(rule, "source_security_group_id", null)
     security_groups          = []
 
-    self = lookup(rule, "self", null)
+    # self conflicts with other arguments, so it must either be
+    # null or true (in which case we split it out into a separate rule)
+    self = lookup(rule, "self", null) == true ? true : null
   }]])...) : []
 
   # in rule_matrix and inline rules, a single rule can have a list of security groups
@@ -51,7 +53,9 @@ locals {
     source_security_group_id = null
     security_groups          = lookup(subject, "source_security_group_ids", [])
 
-    self = lookup(subject, "self", null)
+    # self conflicts with other arguments, so it must either be
+    # null or true (in which case we split it out into a separate rule)
+    self = lookup(rule, "self", null) == true ? true : null
   }]])...) : []
 
   allow_egress_rule = {
@@ -93,14 +97,16 @@ locals {
     cidr_blocks      = []
     ipv6_cidr_blocks = []
     prefix_list_ids  = []
-    self             = rule.self
+    self             = true
 
     security_groups          = []
     source_security_group_id = null
 
-    # To preserve count and order of rules, create rules for `false` if though they do nothing,
-    # so that toggling to true does not have ripple effects.
-  } if rule.self != null]
+    # To preserve count and order of rules, we would like to create rules for `false`
+    # even though they do nothing, but an empty rule is not allowed, so we have to
+    # create the rule only when `self` is `true`.
+    # We use `== true` because `self` could be `null` and `if null` is not allowed.
+  } if rule.self == true]
 
   other_rules = local.inline ? [] : [for rule in local.norm_matrix : {
     key         = "${rule.key}#cidr"

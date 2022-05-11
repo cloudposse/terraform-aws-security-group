@@ -126,7 +126,15 @@ object do not all have to be the same type.
 The "type" of an object is itself an object: the keys are the same, and the values are the types of the values in the object.
 
 So although `{ foo = "bar", baz = {} }` and `{ foo = "bar", baz = [] }` are both objects,
-they are not of the same type. This means you cannot put them both in the same list or the same map,
+they are not of the same type, and you can get error messages like
+
+```
+Error: Inconsistent conditional result types
+The true and false result expressions must have consistent types. The given
+expressions are object and object, respectively.
+```
+
+This means you cannot put them both in the same list or the same map,
 even though you can put them in a single tuple or object.
 Similarly, and closer to the problem at hand,
 
@@ -137,23 +145,29 @@ cidr_rule = {
 }
 ```
 is not the same type as
+
 ```hcl
 self_rule = {
   type        = "ingress"
   self        = true
 }
 ```
+
 This means you cannot put both of those in the same list.
+
 ```hcl
 rules = tolist([local.cidr_rule, local.self_rule])
 ```
+
 Generates the error
+
 ```text
 Invalid value for "v" parameter: cannot convert tuple to list of any single type.
 ```
 
 You could make them the same type and put them in a list,
 like this:
+
 ```hcl
 rules = tolist([{
   type        = "ingress"
@@ -166,9 +180,11 @@ rules = tolist([{
   self        = true
 }])
 ```
+
 That remains an option for you when generating the rules, and is probably better when you have full control over all the rules.
 However, what if some of the rules are coming from a source outside of your control? You cannot simply add those rules
 to your list. So, what to do? Create an object whose attributes' values can be of different types.
+
 ```hcl
 { mine = local.my_rules, theirs = var.their_rules }
 ```
@@ -266,7 +282,32 @@ You can avoid this for the most part by providing the optional keys. Rules with 
 changed if their keys do not change and the rules themselves do not change, except in the case of
 `rule_matrix`, where the rules are still dependent on the order of the security groups in
 `source_security_group_ids`. You can avoid this by using `rules` instead of `rule_matrix` when you have
-more than one security group in the list.
+more than one security group in the list. You cannot avoid this by sorting the
+`source_security_group_ids`, because that leads to the "Invalid `for_each` argument" error.
+
+##### Invalid for_each argument
+You can supply a number of rules as inputs to this module, and they (usually) get transformed into
+`aws_security_group_rule` resources. However, Terraform works in 2 steps: a `plan` step where it
+calculates the changes to be made, and an `apply` step where it makes the changes. This is so you
+can review and approve the plan before changing anything. One big limitation of this approach is
+that it requires that Terraform be able to count the number of resources to create without the
+benefit of any data generated during the `apply` phase. So if you try to generate a rule based
+on something you are creating at the same time, you can get an error like
+
+```
+Error: Invalid for_each argument
+The "for_each" value depends on resource attributes that cannot be determined until apply,
+so Terraform cannot predict how many instances will be created.
+```
+
+This module uses lists to minimize the chance of that happening, as all it needs to know
+is the length of the list, not the values in it, but this error still can
+happen for subtle reasons. Most commonly, using a function like `compact` on a list
+will cause the length to become unknown (since the values have to be checked and `null`s removed).
+In the case of `source_security_group_ids`, just sorting the list using `sort`
+will cause this error. If you run into this error, check for functions like `compact` somewhere
+in the chain that produces the list and remove them if you find them.
+
 
 ##### WARNINGS and Caveats
 
@@ -474,8 +515,8 @@ Available targets:
 | <a name="input_regex_replace_chars"></a> [regex\_replace\_chars](#input\_regex\_replace\_chars) | Terraform regular expression (regex) string.<br>Characters matching the regex will be removed from the ID elements.<br>If not set, `"/[^a-zA-Z0-9-]/"` is used to remove all characters other than hyphens, letters and digits. | `string` | `null` | no |
 | <a name="input_revoke_rules_on_delete"></a> [revoke\_rules\_on\_delete](#input\_revoke\_rules\_on\_delete) | Instruct Terraform to revoke all of the Security Group's attached ingress and egress rules before deleting<br>the security group itself. This is normally not needed. | `bool` | `false` | no |
 | <a name="input_rule_matrix"></a> [rule\_matrix](#input\_rule\_matrix) | A convenient way to apply the same set of rules to a set of subjects. See README for details. | `any` | `[]` | no |
-| <a name="input_rules"></a> [rules](#input\_rules) | A list of Security Group rule objects. All elements of a list must be exactly the same type;<br>use `rules_map` if you want to supply multiple lists of different types.<br>The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,<br>except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique<br>and known at "plan" time.<br>To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule . | `list(any)` | `[]` | no |
-| <a name="input_rules_map"></a> [rules\_map](#input\_rules\_map) | A map-like object of lists of Security Group rule objects. All elements of a list must be exactly the same type,<br>so this input accepts an object with keys (attributes) whose values are lists so you can separate different<br>types into different lists and still pass them into one input. Keys must be known at "plan" time.<br>The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,<br>except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique<br>and known at "plan" time.<br>To get more info see https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule . | `any` | `{}` | no |
+| <a name="input_rules"></a> [rules](#input\_rules) | A list of Security Group rule objects. All elements of a list must be exactly the same type;<br>use `rules_map` if you want to supply multiple lists of different types.<br>The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,<br>except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique<br>and known at "plan" time.<br>To get more info see the `security_group_rule` [documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule).<br>\_\_\_Note:\_\_\_ The length of the list must be known at plan time.<br>This means you cannot use functions like `compact` or `sort` when computing the list. | `list(any)` | `[]` | no |
+| <a name="input_rules_map"></a> [rules\_map](#input\_rules\_map) | A map-like object of lists of Security Group rule objects. All elements of a list must be exactly the same type,<br>so this input accepts an object with keys (attributes) whose values are lists so you can separate different<br>types into different lists and still pass them into one input. Keys must be known at "plan" time.<br>The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,<br>except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique<br>and known at "plan" time.<br>To get more info see the `security_group_rule` [documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule). | `any` | `{}` | no |
 | <a name="input_security_group_create_timeout"></a> [security\_group\_create\_timeout](#input\_security\_group\_create\_timeout) | How long to wait for the security group to be created. | `string` | `"10m"` | no |
 | <a name="input_security_group_delete_timeout"></a> [security\_group\_delete\_timeout](#input\_security\_group\_delete\_timeout) | How long to retry on `DependencyViolation` errors during security group deletion from<br>lingering ENIs left by certain AWS services such as Elastic Load Balancing. | `string` | `"15m"` | no |
 | <a name="input_security_group_description"></a> [security\_group\_description](#input\_security\_group\_description) | The description to assign to the created Security Group.<br>Warning: Changing the description causes the security group to be replaced. | `string` | `"Managed by Terraform"` | no |
@@ -652,12 +693,14 @@ Check out [our other projects][github], [follow us on twitter][twitter], [apply 
 ### Contributors
 
 <!-- markdownlint-disable -->
-|  [![Erik Osterman][osterman_avatar]][osterman_homepage]<br/>[Erik Osterman][osterman_homepage] | [![Vladimir][SweetOps_avatar]][SweetOps_homepage]<br/>[Vladimir][SweetOps_homepage] | [![RB][nitrocode_avatar]][nitrocode_homepage]<br/>[RB][nitrocode_homepage] | [![Andriy Knysh][aknysh_avatar]][aknysh_homepage]<br/>[Andriy Knysh][aknysh_homepage] |
-|---|---|---|---|
+|  [![Erik Osterman][osterman_avatar]][osterman_homepage]<br/>[Erik Osterman][osterman_homepage] | [![Nuru][Nuru_avatar]][Nuru_homepage]<br/>[Nuru][Nuru_homepage] | [![Vladimir][SweetOps_avatar]][SweetOps_homepage]<br/>[Vladimir][SweetOps_homepage] | [![RB][nitrocode_avatar]][nitrocode_homepage]<br/>[RB][nitrocode_homepage] | [![Andriy Knysh][aknysh_avatar]][aknysh_homepage]<br/>[Andriy Knysh][aknysh_homepage] |
+|---|---|---|---|---|
 <!-- markdownlint-restore -->
 
   [osterman_homepage]: https://github.com/osterman
   [osterman_avatar]: https://img.cloudposse.com/150x150/https://github.com/osterman.png
+  [Nuru_homepage]: https://github.com/Nuru
+  [Nuru_avatar]: https://img.cloudposse.com/150x150/https://github.com/Nuru.png
   [SweetOps_homepage]: https://github.com/SweetOps
   [SweetOps_avatar]: https://img.cloudposse.com/150x150/https://github.com/SweetOps.png
   [nitrocode_homepage]: https://github.com/nitrocode
