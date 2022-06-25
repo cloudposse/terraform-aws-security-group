@@ -156,6 +156,8 @@ We provide a number of different ways to define rules for the security group for
 - When Terraform rules can be successfully created before being destroyed, there is no service interruption,
   so this is preferable
 
+TODO: separate rule per CIDR
+
 ##### `rules` and `rules_map` inputs
 This module provides 3 ways to set security group rules. You can use any or all of them at the same time.
 
@@ -527,7 +529,7 @@ Available targets:
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.14.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 3.0 |
 
 ## Providers

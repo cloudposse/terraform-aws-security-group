@@ -123,6 +123,8 @@ usage: |-
   - When Terraform rules can be successfully created before being destroyed, there is no service interruption,
     so this is preferable
 
+  TODO: separate rule per CIDR
+
   ##### `rules` and `rules_map` inputs
   This module provides 3 ways to set security group rules. You can use any or all of them at the same time.
 
