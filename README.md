@@ -97,6 +97,65 @@ This module is primarily for setting security group rules on a security group. Y
 ID of an existing security group to modify, or, by default, this module will create a new security
 group and apply the given rules to it.
 
+This module can be used very simply, but it is actually quite complex because it is attempting to handle
+numerous interrelationships, restrictions, and a few bugs in ways that offer a choice between zero
+service interruption for some updates (but failed updates in certain situations) versus guaranteed
+updates but with otherwise avoidable service interruptions.
+
+### Avoiding service interruptions
+This module provides options intended to reduce the duration (or eliminate altogether) service interruptions
+caused by changes. Unfortunately, the configuration for zero downtime has failure modes resulting in prolonged
+outages, whereas the configuration that most reliably succeeds does so with noticeable downtime in nearly all updates.
+
+##### Security Group `create_before_destroy`
+
+The most important option is `create_before_destroy` which, when set to `true` (the default),
+ensures that a new replacement security group is created before an existing one is destroyed.
+This is particularly important because a security group cannot be destroyed while it is associated with
+a resource (e.g. a load balancer), so "destroy before create" behavior requires destroying and recreating everything
+associated with the security group, which Terraform does not automatically do, so plans fail to apply with
+the error
+```
+Error deleting security group: DependencyViolation: resource sg-XXX has a dependent object
+```
+With "create before destroy" and a resource dependent on the security group,
+replacement happens successfully:
+
+1. New security group is created
+2. Resource is associated with new security group and disassociated with old one
+3. Old security group is deleted successfully because there is no longer anything associated with it
+
+Unfortunately, this is not enough to prevent a service interruption. Keep reading.
+
+##### `rule_create_before_destroy`
+TODO Side-effect: when applying CBD rules to an existing SG, it forces CBD behavior on the SG
+
+TODO
+
+A security group by itself is just a container for rules. It only functions as desired while all the rules as in place.
+If using the default "destroy before create" behavior for rules, even when using `create_before_destroy` for the
+security group itself, an outage occurs when updating the rules or security group, because the order of operations is:
+
+1. Delete existing security group rules (triggering a service interruption)
+2. Create the new security group
+3. Associate the new security group with resources and disassociate the old one (which can take a substantial
+   amount of time for a resource like a NAT Gateway)
+4. Create the new security group rules (restoring service)
+5. Delete the old security group
+
+
+### Defining Security Group Rules
+
+We provide a number of different ways to define rules for the security group for a few reasons:
+- Terraform type constraints make it difficult to create collections of objects with optional members
+- Terraform resource addressing can cause resources that did not actually change to nevertheless be replaced
+  (deleted and recreated), which, in the case of security group rules, can cause the plan to fail to apply
+  when `rule_create_before_destroy` is `true` because Terraform will attempt to create a duplicate rule, which is not allowed
+- Terraform resource addresses must be known at `plan` time, making it challenging to create rules that
+  depend on resources being created during `apply` and at the same time are not replaced needlessly when something else changes
+- When Terraform rules can be successfully created before being destroyed, there is no service interruption,
+  so this is preferable
+
 ##### `rules` and `rules_map` inputs
 This module provides 3 ways to set security group rules. You can use any or all of them at the same time.
 
@@ -199,7 +258,7 @@ The `rules_map` input takes an object.
 which means they cannot depend on any resources created or changed by Terraform.
 - The values of the attributes are lists of rule objects, each object representing one Security Group Rule. As explained
   above in "Why the input is so complex", each object in the list must be exactly the same type. To use multiple types,
-  you must put them in separate lists which are values of separate attributes.
+  you must put them in separate lists and put the lists in a map with distinct keys.
 
 ###### Definition of a rule
 
@@ -476,6 +535,7 @@ Available targets:
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | >= 3.0 |
+| <a name="provider_null"></a> [null](#provider\_null) | n/a |
 
 ## Modules
 
@@ -489,7 +549,9 @@ Available targets:
 |------|------|
 | [aws_security_group.cbd](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_security_group.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
+| [aws_security_group_rule.dbc](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
 | [aws_security_group_rule.keyed](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
+| [null_resource.rules](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 
 ## Inputs
 
@@ -499,7 +561,7 @@ Available targets:
 | <a name="input_allow_all_egress"></a> [allow\_all\_egress](#input\_allow\_all\_egress) | A convenience that adds to the rules specified elsewhere a rule that allows all egress.<br>If this is false and no egress rules are specified via `rules` or `rule-matrix`, then no egress will be allowed. | `bool` | `false` | no |
 | <a name="input_attributes"></a> [attributes](#input\_attributes) | ID element. Additional attributes (e.g. `workers` or `cluster`) to add to `id`,<br>in the order they appear in the list. New attributes are appended to the<br>end of the list. The elements of the list are joined by the `delimiter`<br>and treated as a single ID element. | `list(string)` | `[]` | no |
 | <a name="input_context"></a> [context](#input\_context) | Single object for setting entire context at once.<br>See description of individual variables for details.<br>Leave string and numeric variables as `null` to use default value.<br>Individual variable settings (non-null) override settings in context object,<br>except for attributes, tags, and additional\_tag\_map, which are merged. | `any` | <pre>{<br>  "additional_tag_map": {},<br>  "attributes": [],<br>  "delimiter": null,<br>  "descriptor_formats": {},<br>  "enabled": true,<br>  "environment": null,<br>  "id_length_limit": null,<br>  "label_key_case": null,<br>  "label_order": [],<br>  "label_value_case": null,<br>  "labels_as_tags": [<br>    "unset"<br>  ],<br>  "name": null,<br>  "namespace": null,<br>  "regex_replace_chars": null,<br>  "stage": null,<br>  "tags": {},<br>  "tenant": null<br>}</pre> | no |
-| <a name="input_create_before_destroy"></a> [create\_before\_destroy](#input\_create\_before\_destroy) | Set `true` to enable terraform `create_before_destroy` behavior on the created security group.<br>We recommend setting this `true` on new security groups, but default it to `false` because `true`<br>will cause existing security groups to be replaced.<br>Note that changing this value will always cause the security group to be replaced. | `bool` | `false` | no |
+| <a name="input_create_before_destroy"></a> [create\_before\_destroy](#input\_create\_before\_destroy) | Set `true` to enable terraform `create_before_destroy` behavior on the created security group.<br>When `false` and the security group needs to be replaced, the existing security group will be<br>deleted before the new one is created. This usually fails, because AWS will not allow a security<br>group to be deleted if there are resources associated with it.<br>We only recommend setting this `false` if you are importing an existing security group and want to preserve<br>it, because only when this is `false` can you exactly set the security group name,<br>and changing the name of the security group causes it to be replaced.<br>Note that changing this value will always cause the security group to be replaced. | `bool` | `true` | no |
 | <a name="input_delimiter"></a> [delimiter](#input\_delimiter) | Delimiter to be used between ID elements.<br>Defaults to `-` (hyphen). Set to `""` to use no delimiter at all. | `string` | `null` | no |
 | <a name="input_descriptor_formats"></a> [descriptor\_formats](#input\_descriptor\_formats) | Describe additional descriptors to be output in the `descriptors` output map.<br>Map of maps. Keys are names of descriptors. Values are maps of the form<br>`{<br>   format = string<br>   labels = list(string)<br>}`<br>(Type is `any` so the map values can later be enhanced to provide additional options.)<br>`format` is a Terraform format string to be passed to the `format()` function.<br>`labels` is a list of labels, in order, to pass to `format()` function.<br>Label values will be normalized before being passed to `format()` so they will be<br>identical to how they appear in `id`.<br>Default is `{}` (`descriptors` output will be empty). | `any` | `{}` | no |
 | <a name="input_enabled"></a> [enabled](#input\_enabled) | Set to false to prevent the module from creating any resources | `bool` | `null` | no |
@@ -514,6 +576,7 @@ Available targets:
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | ID element. Usually an abbreviation of your organization name, e.g. 'eg' or 'cp', to help ensure generated IDs are globally unique | `string` | `null` | no |
 | <a name="input_regex_replace_chars"></a> [regex\_replace\_chars](#input\_regex\_replace\_chars) | Terraform regular expression (regex) string.<br>Characters matching the regex will be removed from the ID elements.<br>If not set, `"/[^a-zA-Z0-9-]/"` is used to remove all characters other than hyphens, letters and digits. | `string` | `null` | no |
 | <a name="input_revoke_rules_on_delete"></a> [revoke\_rules\_on\_delete](#input\_revoke\_rules\_on\_delete) | Instruct Terraform to revoke all of the Security Group's attached ingress and egress rules before deleting<br>the security group itself. This is normally not needed. | `bool` | `false` | no |
+| <a name="input_rule_create_before_destroy"></a> [rule\_create\_before\_destroy](#input\_rule\_create\_before\_destroy) | Set `true` to enable terraform `create_before_destroy` behavior on the created security group rules.<br>When `true`, a new security group can replace an existing security group with zero service interruption,<br>but changes to rules in an existing security group may fail. See [#34](https://github.com/cloudposse/terraform-aws-security-group/issues/34).<br>When `false` or when changing the value (from `false` to `true` or from `true` to `false`),<br>existing security group rules will be deleted before new ones are created, resulting in a service interruption, but avoiding failure modes.<br>See the README for further discussion. | `bool` | `true` | no |
 | <a name="input_rule_matrix"></a> [rule\_matrix](#input\_rule\_matrix) | A convenient way to apply the same set of rules to a set of subjects. See README for details. | `any` | `[]` | no |
 | <a name="input_rules"></a> [rules](#input\_rules) | A list of Security Group rule objects. All elements of a list must be exactly the same type;<br>use `rules_map` if you want to supply multiple lists of different types.<br>The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,<br>except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique<br>and known at "plan" time.<br>To get more info see the `security_group_rule` [documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule).<br>\_\_\_Note:\_\_\_ The length of the list must be known at plan time.<br>This means you cannot use functions like `compact` or `sort` when computing the list. | `list(any)` | `[]` | no |
 | <a name="input_rules_map"></a> [rules\_map](#input\_rules\_map) | A map-like object of lists of Security Group rule objects. All elements of a list must be exactly the same type,<br>so this input accepts an object with keys (attributes) whose values are lists so you can separate different<br>types into different lists and still pass them into one input. Keys must be known at "plan" time.<br>The keys and values of the Security Group rule objects are fully compatible with the `aws_security_group_rule` resource,<br>except for `security_group_id` which will be ignored, and the optional "key" which, if provided, must be unique<br>and known at "plan" time.<br>To get more info see the `security_group_rule` [documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule). | `any` | `{}` | no |

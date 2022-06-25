@@ -39,12 +39,29 @@ variable "security_group_description" {
 
 variable "create_before_destroy" {
   type        = bool
-  default     = false
+  default     = true
   description = <<-EOT
     Set `true` to enable terraform `create_before_destroy` behavior on the created security group.
-    We recommend setting this `true` on new security groups, but default it to `false` because `true`
-    will cause existing security groups to be replaced.
+    When `false` and the security group needs to be replaced, the existing security group will be
+    deleted before the new one is created. This usually fails, because AWS will not allow a security
+    group to be deleted if there are resources associated with it.
+    We only recommend setting this `false` if you are importing an existing security group and want to preserve
+    it, because only when this is `false` can you exactly set the security group name,
+    and changing the name of the security group causes it to be replaced.
     Note that changing this value will always cause the security group to be replaced.
+    EOT
+}
+
+variable "rule_create_before_destroy" {
+  type        = bool
+  default     = true
+  description = <<-EOT
+    Set `true` to enable terraform `create_before_destroy` behavior on the created security group rules.
+    When `true`, a new security group can replace an existing security group with zero service interruption,
+    but changes to rules in an existing security group may fail. See [#34](https://github.com/cloudposse/terraform-aws-security-group/issues/34).
+    When `false` or when changing the value (from `false` to `true` or from `true` to `false`),
+    existing security group rules will be deleted before new ones are created, resulting in a service interruption, but avoiding failure modes.
+    See the README for further discussion.
     EOT
 }
 
