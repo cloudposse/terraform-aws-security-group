@@ -115,7 +115,7 @@ module "new_security_group" {
   security_group_create_timeout = "5m"
   security_group_delete_timeout = "2m"
 
-  security_group_name = [format("%s-%s", module.this.id, "new")]
+  security_group_name = [format("%s-%s", module.this.id, "new-")]
 
   context = module.this.context
 }
