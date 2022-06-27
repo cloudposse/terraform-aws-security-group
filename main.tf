@@ -12,16 +12,23 @@ locals {
     var.create_before_destroy ? aws_security_group.cbd[0] : aws_security_group.default[0]
   ) : null
 
+  # This clever construction makes `security_group_id` the ID of either the Target SG supplied,
+  # or 1 of the 2 flavors we create: the CBD (`create_before_destroy = true`) SG
+  # or the DBC (`create_before_destroy = false`) SG. Unfortunately, the way it is constructed,
+  # Terraform considers `local.security_group_id` dependent on the DBC SG, which means that
+  # when it is referenced by the CBD security group rules, Terraform forces
+  # unwanted CBD behavior on the DBC SG, so we can only use it for the DBC SG rules.
   security_group_id = local.enabled ? (
     # Use coalesce() here to hack an error message into the output
     local.create_security_group ? local.created_security_group.id : coalesce(var.target_security_group_id[0],
     "var.target_security_group_id contains null value. Omit value if you want this module to create a security group.")
   ) : null
 
-  # Setting `create_before_destroy` on the security group rules forces create_before_destroy behavior
+  # Setting `create_before_destroy` on the security group rules forces `create_before_destroy` behavior
   # on the security group, so we have to disable it on the rules if disabled on the security group.
   rule_create_before_destroy = var.create_before_destroy && var.rule_create_before_destroy
   # We also have to make it clear to Terraform that the CBD rules will never reference the DBC security group
+  # by keeping any conditional reference to the DBC SG out of the expression (unlike the `security_group_id` expression above).
   cbd_security_group_id = local.create_security_group ? one(aws_security_group.cbd[*].id) : var.target_security_group_id[0]
 }
 

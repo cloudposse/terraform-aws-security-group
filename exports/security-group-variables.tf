@@ -1,4 +1,4 @@
-# security-group-variables Version: 2
+# security-group-variables Version: 3
 #
 # Copy this file from https://github.com/cloudposse/terraform-aws-security-group/blob/master/exports/security-group-variables.tf
 # and EDIT IT TO SUIT YOUR PROJECT. Update the version number above if you update this file from a later version.
@@ -139,6 +139,19 @@ variable "security_group_create_before_destroy" {
   #    Note that changing this value will always cause the security group to be replaced.
   #    EOT
 
+}
+
+variable "security_group_rule_create_before_destroy" {
+  type        = bool
+  default     = true
+  description = <<-EOT
+    When `true`, new security groups rules are created before old ones are destroyed,
+    enabling a new security group to replace an existing security group with zero service interruption,
+    but changes to rules in an existing security group may fail because of duplicates. See [terraform-aws-security-group/#34](https://github.com/cloudposse/terraform-aws-security-group/issues/34).
+    When `false` or when changing the value (from `false` to `true` or from `true` to `false`),
+    existing security group rules will be deleted before new ones are created, resulting in a service interruption, but avoiding failure modes.
+    See the [terraform-aws-security-group README](https://github.com/cloudposse/terraform-aws-security-group) for further discussion.
+    EOT
 }
 
 variable "security_group_create_timeout" {
