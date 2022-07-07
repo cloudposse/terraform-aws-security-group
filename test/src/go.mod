@@ -1,11 +1,11 @@
 module github.com/cloudposse/terraform-aws-security-group
 
-go 1.17
+go 1.18
 
 require (
 	// Known security flaws in terratest dependencies prior to v0.40.15
-	github.com/gruntwork-io/terratest v0.40.16
-	github.com/stretchr/testify v1.7.0
+	github.com/gruntwork-io/terratest v0.40.17
+	github.com/stretchr/testify v1.8.0
 	k8s.io/apimachinery v0.20.6
 )
 
@@ -79,7 +79,7 @@ require (
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.20.6 // indirect
 	k8s.io/client-go v0.20.6 // indirect
 	k8s.io/klog/v2 v2.4.0 // indirect
