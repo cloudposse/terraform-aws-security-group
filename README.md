@@ -162,7 +162,7 @@ With "create before destroy" and any resources dependent on the security group a
 same Terraform plan, replacement happens successfully:
 
 1. New security group is created
-2. Resource is associated with new security group and disassociated with old one
+2. Resource is associated with the new security group and disassociated from the old one
 3. Old security group is deleted successfully because there is no longer anything associated with it
 
 (If there is a resource dependent on the security group that is also outside the scope of
@@ -244,7 +244,7 @@ Every security group rule input to this module accepts optional identifying keys
 If you do not supply keys, then the rules are treated as a list,
 and the index of the rule in the list will be used as its key. This has the unwelcome behavior that removing a rule
 from the list will cause all the rules later in the list to be destroyed and recreated. For example, changing
-`[A, B, C, D]` to `[A, C, D]` causes rules 1 (`B`), 2 (`C`), and 3(`D`) to be deleted and new rules 1(`C`) and
+`[A, B, C, D]` to `[A, C, D]` causes rules 1(`B`), 2(`C`), and 3(`D`) to be deleted and new rules 1(`C`) and
 2(`D`) to be created.
 
 To mitigate against this problem, we allow you to specify keys (arbitrary strings) for each rule. (Exactly how you specify
@@ -453,7 +453,7 @@ and should not cause concern.
 
 As explained above under [The Importance of Keys](#the-importance-of-keys),
 when using "destroy before create" behavior, security group rules without keys
-are identified by their index in the input lists. If a rule is deleted and the other rules therefore move
+are identified by their indices in the input lists. If a rule is deleted and the other rules therefore move
 closer to the start of the list, those rules will be deleted and recreated. This
 can make a small change look like a big one when viewing the output of Terraform plan,
 and will likely cause a brief (seconds) service interruption.

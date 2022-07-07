@@ -30,8 +30,8 @@ locals {
   # It also forces a new security group to be created whenever any rule changes, so we disable it
   # when `var.preserve_security_group_id` is `true`.
   rule_create_before_destroy = local.sg_create_before_destroy && !var.preserve_security_group_id
-  # We also have to make it clear to Terraform that the "create before destroy (CBD) rules
-  # will never reference the "destroy before create (DBC)" security group (SG)
+  # We also have to make it clear to Terraform that the "create before destroy" (CBD) rules
+  # will never reference the "destroy before create" (DBC) security group (SG)
   # by keeping any conditional reference to the DBC SG out of the expression (unlike the `security_group_id` expression above).
   cbd_security_group_id = local.create_security_group ? one(aws_security_group.cbd[*].id) : var.target_security_group_id[0]
 
