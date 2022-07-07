@@ -1,12 +1,12 @@
 variable "target_security_group_id" {
   type        = list(string)
-  default     = []
   description = <<-EOT
     The ID of an existing Security Group to which Security Group rules will be assigned.
     The Security Group's description will not be changed.
     Not compatible with `inline_rules_enabled` or `revoke_rules_on_delete`.
     Required if `create_security_group` is `false`, ignored otherwise.
     EOT
+  default     = []
   validation {
     condition     = length(var.target_security_group_id) < 2
     error_message = "Only 1 security group can be targeted."
@@ -15,12 +15,12 @@ variable "target_security_group_id" {
 
 variable "security_group_name" {
   type        = list(string)
-  default     = []
   description = <<-EOT
     The name to assign to the security group. Must be unique within the VPC.
     If not provided, will be derived from the `null-label.context` passed in.
     If `create_before_destroy` is true, will be used as a name prefix.
     EOT
+  default     = []
   validation {
     condition     = length(var.security_group_name) < 2
     error_message = "Only 1 security group name can be provided."
@@ -30,53 +30,51 @@ variable "security_group_name" {
 
 variable "security_group_description" {
   type        = string
-  default     = "Managed by Terraform"
   description = <<-EOT
     The description to assign to the created Security Group.
     Warning: Changing the description causes the security group to be replaced.
     EOT
+  default     = "Managed by Terraform"
 }
 
 variable "create_before_destroy" {
   type        = bool
-  default     = true
   description = <<-EOT
     Set `true` to enable terraform `create_before_destroy` behavior on the created security group.
-    When `false` and the security group needs to be replaced, the existing security group will be
-    deleted before the new one is created. This usually fails, because AWS will not allow a security
-    group to be deleted if there are resources associated with it.
-    We only recommend setting this `false` if you are importing an existing security group and want to preserve
-    it, because only when this is `false` can you exactly set the security group name,
-    and changing the name of the security group causes it to be replaced.
+    We only recommend setting this `false` if you are importing an existing security group
+    that you do not want replaced and therefore need full control over its name.
     Note that changing this value will always cause the security group to be replaced.
     EOT
+  default     = true
 }
 
-variable "rule_create_before_destroy" {
+variable "preserve_security_group_id" {
   type        = bool
-  default     = true
   description = <<-EOT
-    Set `true` to enable terraform `create_before_destroy` behavior on the created security group rules.
-    When `true`, a new security group can replace an existing security group with zero service interruption,
-    but changes to rules in an existing security group may fail. See [#34](https://github.com/cloudposse/terraform-aws-security-group/issues/34).
-    When `false` or when changing the value (from `false` to `true` or from `true` to `false`),
-    existing security group rules will be deleted before new ones are created, resulting in a service interruption, but avoiding failure modes.
+    When `false` and `security_group_create_before_destroy` is `true`, changes to security group rules
+    cause a new security group to be created with the new rules, and the existing security group is then
+    replaced with the new one, eliminating any service interruption.
+    When `true` or when changing the value (from `false` to `true` or from `true` to `false`),
+    existing security group rules will be deleted before new ones are created, resulting in a service interruption,
+    but preserving the security group itself.
+    **NOTE:** Setting this to `true` does not guarantee the security group will never be replaced,
+    it only keeps changes to the security group rules from triggering a replacement.
     See the README for further discussion.
     EOT
+  default     = false
 }
 
 variable "allow_all_egress" {
   type        = bool
-  default     = false
   description = <<-EOT
     A convenience that adds to the rules specified elsewhere a rule that allows all egress.
     If this is false and no egress rules are specified via `rules` or `rule-matrix`, then no egress will be allowed.
     EOT
+  default     = true
 }
 
 variable "rules" {
   type        = list(any)
-  default     = []
   description = <<-EOT
     A list of Security Group rule objects. All elements of a list must be exactly the same type;
     use `rules_map` if you want to supply multiple lists of different types.
@@ -87,11 +85,11 @@ variable "rules" {
     ___Note:___ The length of the list must be known at plan time.
     This means you cannot use functions like `compact` or `sort` when computing the list.
     EOT
+  default     = []
 }
 
 variable "rules_map" {
   type        = any
-  default     = {}
   description = <<-EOT
     A map-like object of lists of Security Group rule objects. All elements of a list must be exactly the same type,
     so this input accepts an object with keys (attributes) whose values are lists so you can separate different
@@ -101,6 +99,7 @@ variable "rules_map" {
     and known at "plan" time.
     To get more info see the `security_group_rule` [documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule).
     EOT
+  default     = {}
 }
 
 variable "rule_matrix" {
@@ -129,34 +128,34 @@ variable "rule_matrix" {
   #    }]
 
   type        = any
-  default     = []
   description = <<-EOT
     A convenient way to apply the same set of rules to a set of subjects. See README for details.
     EOT
+  default     = []
 }
 
 variable "security_group_create_timeout" {
   type        = string
-  default     = "10m"
   description = "How long to wait for the security group to be created."
+  default     = "10m"
 }
 
 variable "security_group_delete_timeout" {
   type        = string
-  default     = "15m"
   description = <<-EOT
     How long to retry on `DependencyViolation` errors during security group deletion from
     lingering ENIs left by certain AWS services such as Elastic Load Balancing.
     EOT
+  default     = "15m"
 }
 
 variable "revoke_rules_on_delete" {
   type        = bool
-  default     = false
   description = <<-EOT
     Instruct Terraform to revoke all of the Security Group's attached ingress and egress rules before deleting
     the security group itself. This is normally not needed.
     EOT
+  default     = false
 }
 
 variable "vpc_id" {
@@ -166,11 +165,10 @@ variable "vpc_id" {
 
 variable "inline_rules_enabled" {
   type        = bool
-  default     = false
   description = <<-EOT
     NOT RECOMMENDED. Create rules "inline" instead of as separate `aws_security_group_rule` resources.
     See [#20046](https://github.com/hashicorp/terraform-provider-aws/issues/20046) for one of several issues with inline rules.
     See [this post](https://github.com/hashicorp/terraform-provider-aws/pull/9032#issuecomment-639545250) for details on the difference between inline rules and rule resources.
     EOT
+  default     = false
 }
-
