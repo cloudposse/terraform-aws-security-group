@@ -33,7 +33,7 @@ locals {
   # We also have to make it clear to Terraform that the "create before destroy" (CBD) rules
   # will never reference the "destroy before create" (DBC) security group (SG)
   # by keeping any conditional reference to the DBC SG out of the expression (unlike the `security_group_id` expression above).
-  cbd_security_group_id = local.create_security_group ? one(aws_security_group.cbd[*].id) : var.target_security_group_id[0]
+  cbd_security_group_id = local.create_security_group ? one(aws_security_group.cbd[*].id) : one(var.target_security_group_id)
 
   # The only way to guarantee success when creating new rules before destroying old ones
   # is to make the new rules part of a new security group.
