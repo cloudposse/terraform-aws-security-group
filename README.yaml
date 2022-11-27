@@ -489,7 +489,7 @@ usage: |-
 # Example usage
 examples: |-
 
-  See [examples/complete/main.tf](https://github.com/cloudposse/terraform-aws-security-group/examples/complete/main.tf) for
+  See [examples/complete/main.tf](https://github.com/cloudposse/terraform-aws-security-group/blob/master/examples/complete/main.tf) for
   even more examples.
 
   ```hcl
