@@ -10,7 +10,7 @@ locals {
   sg_create_before_destroy = var.create_before_destroy
   # If the security group is not being created by this module, we need to treat it as
   # needing to be preserved, because we cannot replace it here.
-  preserve_security_group_id = var.preserve_security_group_id && local.create_security_group
+  preserve_security_group_id = var.preserve_security_group_id || length(var.target_security_group_id) > 0
 
   created_security_group = local.create_security_group ? (
     local.sg_create_before_destroy ? aws_security_group.cbd[0] : aws_security_group.default[0]
