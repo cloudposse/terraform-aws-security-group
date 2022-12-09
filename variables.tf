@@ -51,7 +51,7 @@ variable "create_before_destroy" {
 variable "preserve_security_group_id" {
   type        = bool
   description = <<-EOT
-    When `false` and `security_group_create_before_destroy` is `true`, changes to security group rules
+    When `false` and `create_before_destroy` is `true`, changes to security group rules
     cause a new security group to be created with the new rules, and the existing security group is then
     replaced with the new one, eliminating any service interruption.
     When `true` or when changing the value (from `false` to `true` or from `true` to `false`),

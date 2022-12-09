@@ -104,12 +104,12 @@ service interruption for updates to a security group not referenced by other sec
 
 ### Avoiding Service Interruptions
 
-It is desirable to avoid having service interruptions when updating a security group. This is not always possible
-due to a combination of the way Terraform organizes its activities and the fact that AWS will reject
-an attempt to create a duplicate of an existing security group rule. There is also the issue that while many
-AWS resources can be associated with and disassociated from security groups at any time, some
-may not have their security group association changed, and an attempt to change the security group will
-cause Terraform to delete and recreate the resource.
+It is desirable to avoid having service interruptions when updating a security group. This is not always
+possible due to the way Terraform organizes its activities and the fact that AWS will reject an attempt
+to create a duplicate of an existing security group rule. There is also the issue that while most AWS
+resources can be associated with and disassociated from security groups at any time, there remain some
+that may not have their security group association changed, and an attempt to change their security group
+will cause Terraform to delete and recreate the resource.
 
 #### The 2 Ways Security Group Changes Cause Service Interruptions
 
@@ -128,20 +128,21 @@ Changes to a security group can cause service interruptions in 2 ways:
    to update the rule to reference the new security group.
 
 The key question you need to answer to decide which configuration to use is "will anything break
-if the security group ID changes". If no, then use the defaults `create_before_destroy = true` and
+if the security group ID changes". If not, then use the defaults `create_before_destroy = true` and
 `preserve_security_group_id = false` and do not worry about providing "keys" for
 security group rules. This is the default because it is the easiest and safest solution when
 the way the security group is being used allows it.
 
 If things will break when the security group ID changes, then set `preserve_security_group_id`
-to `true` and read the information about keys and single source Terraform rules if you want
-to mitigate against service interruptions caused by rule changes. Note that even in this case,
-you probably want to keep `create_before_destroy = true` because otherwise, if some change
-requires the security group to be replaced, Terraform will likely succeed in deleting all the
-security group rules but fail to delete the security group itself, leaving the associated resources
-completely inaccessible. At least with `create_before_destroy = true`, the new security group
-will be created and will be used where Terraform is able to make the changes, even though
-the old security group will still fail to be deleted.
+to `true`. Also read and follow the guidance below about [keys](#the-importance-of-keys) and
+[limiting Terraform security group rules to a single AWS security group rule](#terraform-rules-vs-aws-rules)
+if you want to mitigate against service interruptions caused by rule changes.
+Note that even in this case, you probably want to keep `create_before_destroy = true` because otherwise,
+if some change requires the security group to be replaced, Terraform will likely succeed
+in deleting all the security group rules but fail to delete the security group itself,
+leaving the associated resources completely inaccessible. At least with `create_before_destroy = true`,
+the new security group will be created and used where Terraform can make the changes,
+even though the old security group will still fail to be deleted.
 
 #### The 3 Ways to Mitigate Against Service Interruptions
 
@@ -263,17 +264,18 @@ rule_map = { for i, v in rule_list : i => v }
 then you will have merely recreated the initial problem with using a plain list. If you cannot attach
 meaningful keys to the rules, there is no advantage to specifying keys at all.
 
-**But wait, there's more!***
+#### Terraform Rules vs AWS Rules
 
-A single security group rule input can actually specify multiple security group rules. For example,
+A single security group rule input can actually specify multiple AWS security group rules. For example,
 `ipv6_cidr_blocks` takes a list of CIDRs. However, AWS security group rules do not allow for a list
 of CIDRs, so the AWS Terraform provider converts that list of CIDRs into a list of AWS security group rules,
 one for each CIDR. (This is the underlying cause of several AWS Terraform provider bugs,
 such as [#25173](https://github.com/hashicorp/terraform-provider-aws/issues/25173).)
-As of this writing, any change to any such element of a rule will cause
+As of this writing, any change to any element of such a rule will cause
 all the AWS rules specified by the Terraform rule to be deleted and recreated, causing the same kind of
-service interruption we sought to avoid by providing keys for the rules. To guard against this issue,
-when using "destroy before create" behavior, you should avoid the convenience of specifying multiple AWS rules
+service interruption we sought to avoid by providing keys for the rules, or, when create_before_destroy = true,
+causing a complete failure as Terraform tries to create duplicate rules which AWS rejects. To guard against this issue,
+when not using the default behavior, you should avoid the convenience of specifying multiple AWS rules
 in a single Terraform rule and instead create a separate Terraform rule for each source or destination specification.
 
 ##### `rules` and `rules_map` inputs
@@ -380,12 +382,39 @@ which means they cannot depend on any resources created or changed by Terraform.
   above in "Why the input is so complex", each object in the list must be exactly the same type. To use multiple types,
   you must put them in separate lists and put the lists in a map with distinct keys.
 
+Example:
+
+```hcl
+rules_map = {
+  ingress = [{
+    key         = "ingress"
+    type        = "ingress"
+    from_port   = 0
+    to_port     = 2222
+    protocol    = "tcp"
+    cidr_blocks = module.subnets.nat_gateway_public_ips
+    self        = null
+    description = "2222"
+  }],
+  egress = [{
+    key         = "egress"
+    type        = "egress"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    self        = null
+    description = "All output traffic"
+  }]
+}
+```
+
 ###### Definition of a Rule
 
 For this module, a rule is defined as an object.
 - The attributes and values of the rule objects are fully compatible (have the same keys and accept the same values) as the
 Terraform [aws_security_group_rule resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule),
-except
+except:
    - The `security_group_id` will be ignored, if present
    - You can include an optional `key` attribute. If present, its value must be unique among all security group rules in the
      security group, and it must be known in the Terraform "plan" phase, meaning it cannot depend on anything being
@@ -399,9 +428,13 @@ See ["Unexpected changes..."](#unexpected-changes-during-plan-and-apply) below f
 
 
 ##### `rule_matrix` Input
+
 The other way to set rules is via the `rule_matrix` input. This splits the attributes of the `aws_security_group_rule`
 resource into two sets: one set defines the rule and description, the other set defines the subjects of the rule.
-Again, optional "key" values can provide stability, but cannot contain derived values.
+Again, optional "key" values can provide stability, but cannot contain derived values. This input is an attempt
+at convenience, and should not be used unless you are using the default settings of `create_before_destroy = true` and
+`preserve_security_group_id = false`, or else a number of failure modes or service interruptions are possible: use
+`rules_map` instead.
 
 As with `rules` and explained above in "Why the input is so complex", all elements of the list must be the exact same type.
 This also holds for all the elements of the `rules_matrix.rules` list. Because `rule_matrix` is already
@@ -458,11 +491,11 @@ closer to the start of the list, those rules will be deleted and recreated. This
 can make a small change look like a big one when viewing the output of Terraform plan,
 and will likely cause a brief (seconds) service interruption.
 
-You can avoid this for the most part by providing the optional keys, and limiting each rule
-to a single source or destination. Rules with keys will not be
+You can avoid this for the most part by providing the optional keys, and [limiting each rule
+to a single source or destination](#terraform-rules-vs-aws-rules). Rules with keys will not be
 changed if their keys do not change and the rules themselves do not change, except in the case of
 `rule_matrix`, where the rules are still dependent on the order of the security groups in
-`source_security_group_ids`. You can avoid this by using `rules` instead of `rule_matrix` when you have
+`source_security_group_ids`. You can avoid this by using `rules` or `rules_map` instead of `rule_matrix` when you have
 more than one security group in the list. You cannot avoid this by sorting the
 `source_security_group_ids`, because that leads to the "Invalid `for_each` argument" error
 because of [terraform#31035](https://github.com/hashicorp/terraform/issues/31035).
@@ -577,7 +610,7 @@ module "sg" {
       to_port     = 22
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
-      self        = null
+      self        = null  # preferable to self = false
       description = "Allow SSH from anywhere"
     },
     {
@@ -703,7 +736,7 @@ Available targets:
 | <a name="input_labels_as_tags"></a> [labels\_as\_tags](#input\_labels\_as\_tags) | Set of labels (ID elements) to include as tags in the `tags` output.<br>Default is to include all labels.<br>Tags with empty values will not be included in the `tags` output.<br>Set to `[]` to suppress all generated tags.<br>**Notes:**<br>  The value of the `name` tag, if included, will be the `id`, not the `name`.<br>  Unlike other `null-label` inputs, the initial setting of `labels_as_tags` cannot be<br>  changed in later chained modules. Attempts to change it will be silently ignored. | `set(string)` | <pre>[<br>  "default"<br>]</pre> | no |
 | <a name="input_name"></a> [name](#input\_name) | ID element. Usually the component or solution name, e.g. 'app' or 'jenkins'.<br>This is the only ID element not also included as a `tag`.<br>The "name" tag is set to the full `id` string. There is no tag with the value of the `name` input. | `string` | `null` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | ID element. Usually an abbreviation of your organization name, e.g. 'eg' or 'cp', to help ensure generated IDs are globally unique | `string` | `null` | no |
-| <a name="input_preserve_security_group_id"></a> [preserve\_security\_group\_id](#input\_preserve\_security\_group\_id) | When `false` and `security_group_create_before_destroy` is `true`, changes to security group rules<br>cause a new security group to be created with the new rules, and the existing security group is then<br>replaced with the new one, eliminating any service interruption.<br>When `true` or when changing the value (from `false` to `true` or from `true` to `false`),<br>existing security group rules will be deleted before new ones are created, resulting in a service interruption,<br>but preserving the security group itself.<br>**NOTE:** Setting this to `true` does not guarantee the security group will never be replaced,<br>it only keeps changes to the security group rules from triggering a replacement.<br>See the README for further discussion. | `bool` | `false` | no |
+| <a name="input_preserve_security_group_id"></a> [preserve\_security\_group\_id](#input\_preserve\_security\_group\_id) | When `false` and `create_before_destroy` is `true`, changes to security group rules<br>cause a new security group to be created with the new rules, and the existing security group is then<br>replaced with the new one, eliminating any service interruption.<br>When `true` or when changing the value (from `false` to `true` or from `true` to `false`),<br>existing security group rules will be deleted before new ones are created, resulting in a service interruption,<br>but preserving the security group itself.<br>**NOTE:** Setting this to `true` does not guarantee the security group will never be replaced,<br>it only keeps changes to the security group rules from triggering a replacement.<br>See the README for further discussion. | `bool` | `false` | no |
 | <a name="input_regex_replace_chars"></a> [regex\_replace\_chars](#input\_regex\_replace\_chars) | Terraform regular expression (regex) string.<br>Characters matching the regex will be removed from the ID elements.<br>If not set, `"/[^a-zA-Z0-9-]/"` is used to remove all characters other than hyphens, letters and digits. | `string` | `null` | no |
 | <a name="input_revoke_rules_on_delete"></a> [revoke\_rules\_on\_delete](#input\_revoke\_rules\_on\_delete) | Instruct Terraform to revoke all of the Security Group's attached ingress and egress rules before deleting<br>the security group itself. This is normally not needed. | `bool` | `false` | no |
 | <a name="input_rule_matrix"></a> [rule\_matrix](#input\_rule\_matrix) | A convenient way to apply the same set of rules to a set of subjects. See README for details. | `any` | `[]` | no |
@@ -902,7 +935,7 @@ Check out [our other projects][github], [follow us on twitter][twitter], [apply 
 
 [![README Footer][readme_footer_img]][readme_footer_link]
 [![Beacon][beacon]][website]
-
+<!-- markdownlint-disable -->
   [logo]: https://cloudposse.com/logo-300x69.svg
   [docs]: https://cpco.io/docs?utm_source=github&utm_medium=readme&utm_campaign=cloudposse/terraform-aws-security-group&utm_content=docs
   [website]: https://cpco.io/homepage?utm_source=github&utm_medium=readme&utm_campaign=cloudposse/terraform-aws-security-group&utm_content=website
@@ -933,3 +966,4 @@ Check out [our other projects][github], [follow us on twitter][twitter], [apply 
   [share_googleplus]: https://plus.google.com/share?url=https://github.com/cloudposse/terraform-aws-security-group
   [share_email]: mailto:?subject=terraform-aws-security-group&body=https://github.com/cloudposse/terraform-aws-security-group
   [beacon]: https://ga-beacon.cloudposse.com/UA-76589703-4/cloudposse/terraform-aws-security-group?pixel&cs=github&cm=readme&an=terraform-aws-security-group
+<!-- markdownlint-restore -->

@@ -1,3 +1,6 @@
+# top-most EditorConfig file
+root = true
+
 # Unix-style newlines with a newline ending every file
 [*]
 charset = utf-8
@@ -13,7 +16,9 @@ indent_style = space
 
 [*.md]
 max_line_length = 0
-trim_trailing_whitespace = false
+trim_trailing_whitespace = true
+intent_style = space
+indent_size = 2
 
 # Override for Makefile
 [{Makefile, makefile, GNUmakefile, Makefile.*}]
