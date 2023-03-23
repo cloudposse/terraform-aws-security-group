@@ -15,7 +15,7 @@ output "created_sg_name" {
 
 output "test_created_sg_id" {
   description = "The security group created by the test to use as \"target\" security group"
-  value       = aws_security_group.target.id
+  value       = local.enabled ? aws_security_group.target[0].id : null
 }
 
 output "target_sg_id" {
@@ -31,21 +31,6 @@ output "target_sg_arn" {
 output "target_sg_name" {
   description = "The target Security Group name"
   value       = module.target_security_group.name
-}
-
-output "disabled_sg_id" {
-  description = "The disabled Security Group ID (should be empty)"
-  value       = module.disabled_security_group.id == null ? "" : module.disabled_security_group.id
-}
-
-output "disabled_sg_arn" {
-  description = "The disabled Security Group ARN (should be empty)"
-  value       = module.disabled_security_group.arn == null ? "" : module.disabled_security_group.arn
-}
-
-output "disabled_sg_name" {
-  description = "The disabled Security Group Name (should be empty)"
-  value       = module.disabled_security_group.name == null ? "" : module.disabled_security_group.name
 }
 
 output "rules_terraform_ids" {
