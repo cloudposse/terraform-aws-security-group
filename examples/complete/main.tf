@@ -126,6 +126,8 @@ module "new_security_group" {
 # Create rules for pre-created security group
 
 resource "aws_security_group" "target" {
+  #bridgecrew:skip=BC_AWS_NETWORKING_31:Not needed for testing
+  #bridgecrew:skip=BC_AWS_NETWORKING_51:Not needed for testing
   count = local.enabled ? 1 : 0
 
   name_prefix = format("%s-%s-", module.this.id, "existing")
