@@ -267,7 +267,7 @@ resource "null_resource" "sync_rules_and_sg_lifecycles" {
   # NOTE: This resource affects the lifecycles even when count = 0,
   # see https://github.com/hashicorp/terraform/issues/31316#issuecomment-1167450615
   # Still, we can avoid creating it when we do not need it to be triggered.
-  count = local.rule_create_before_destroy ? 1 : 0
+  count = local.enabled && local.rule_create_before_destroy ? 1 : 0
   # Replacement of the security group requires re-provisioning
   triggers = {
     sg_ids = one(aws_security_group.cbd[*].id)
