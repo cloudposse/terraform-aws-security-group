@@ -3,7 +3,7 @@
 <!-- markdownlint-disable -->
 <a href="https://cpco.io/homepage"><img src="https://github.com/cloudposse/terraform-aws-security-group/blob/main/.github/banner.png?raw=true" alt="Project Banner"/></a><br/>
     <p align="right">
-<a href="https://github.com/cloudposse/terraform-aws-security-group/releases/latest"><img src="https://img.shields.io/github/release/cloudposse/terraform-aws-security-group.svg?style=for-the-badge" alt="Latest Release"/></a><a href="https://github.com/cloudposse/terraform-aws-security-group/commits"><img src="https://img.shields.io/github/last-commit/cloudposse/terraform-aws-security-group.svg?style=for-the-badge" alt="Last Updated"/></a><a href="https://slack.cloudposse.com"><img src="https://slack.cloudposse.com/for-the-badge.svg" alt="Slack Community"/></a></p>
+<a href="https://github.com/cloudposse/terraform-aws-security-group/releases/latest"><img src="https://img.shields.io/github/release/cloudposse/terraform-aws-security-group.svg?style=for-the-badge" alt="Latest Release"/></a><a href="https://github.com/cloudposse/terraform-aws-security-group/commits"><img src="https://img.shields.io/github/last-commit/cloudposse/terraform-aws-security-group.svg?style=for-the-badge" alt="Last Updated"/></a><a href="https://cloudposse.com/slack"><img src="https://slack.cloudposse.com/for-the-badge.svg" alt="Slack Community"/></a></p>
 <!-- markdownlint-restore -->
 
 <!--
@@ -37,7 +37,7 @@ Terraform module to create AWS Security Group and rules.
 >
 > <details>
 > <summary><strong>Watch demo of using Atmos with Terraform</strong></summary>
-> <img src="https://github.com/cloudposse/atmos/blob/master/docs/demo.gif?raw=true"/><br/>
+> <img src="https://github.com/cloudposse/atmos/blob/main/docs/demo.gif?raw=true"/><br/>
 > <i>Example of running <a href="https://atmos.tools"><code>atmos</code></a> to manage infrastructure from our <a href="https://atmos.tools/quick-start/">Quick Start</a> tutorial.</i>
 > </detalis>
 
@@ -517,7 +517,6 @@ unless the value is a list type, in which case set the value to `[]` (an empty l
 
 ## Examples
 
-
 See [examples/complete/main.tf](https://github.com/cloudposse/terraform-aws-security-group/blob/master/examples/complete/main.tf) for
 even more examples.
 
@@ -670,18 +669,6 @@ module "sg_mysql" {
 
 
 <!-- markdownlint-disable -->
-## Makefile Targets
-```text
-Available targets:
-
-  help                                Help screen
-  help/all                            Display help for all targets
-  help/short                          This help short screen
-  lint                                Lint terraform code
-
-```
-<!-- markdownlint-restore -->
-<!-- markdownlint-disable -->
 ## Requirements
 
 | Name | Version |
@@ -762,6 +749,11 @@ Available targets:
 | <a name="output_name"></a> [name](#output\_name) | The created Security Group Name (null if using existing security group) |
 | <a name="output_rules_terraform_ids"></a> [rules\_terraform\_ids](#output\_rules\_terraform\_ids) | List of Terraform IDs of created `security_group_rule` resources, primarily provided to enable `depends_on` |
 <!-- markdownlint-restore -->
+
+
+
+
+
 
 
 ## Related Projects
@@ -855,7 +847,7 @@ All other trademarks referenced herein are the property of their respective owne
 
 ## Copyrights
 
-Copyright © 2021-2024 [Cloud Posse, LLC](https://cloudposse.com)
+Copyright © 2021-2025 [Cloud Posse, LLC](https://cloudposse.com)
 
 
 
